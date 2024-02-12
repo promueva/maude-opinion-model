@@ -1,0 +1,260 @@
+***(
+
+Data types representing networks
+
+Sorts and operators defining agents and edges 
+
+The following sorts (and operators) must be populated with user defined
+constructors (and equations):
+ * Sort Agent for agents' identifiers (e.g., subsort Nat < Agent) 
+
+Opinions are terms of the form (AG, FLOAT) and edges are terms of the form 
+(AG, WEIGHT, AG')
+
+A Network takes the form < nodes: NODES ; edges: EDGES >
+
+The state of the system is a term of the form { NETWORK }
+
+EPSILON (for checking consensus) must be defined in the user module
+
+***)
+
+
+--- Nodes and edges
+--- Sorts Agent must be populated later with a user-defined type
+fmod NODE-EDGE is
+ pr CONVERSION . 
+ pr EXT-BOOL .
+ sorts Agent .
+ sort Opinion Edge .
+
+ op  <_:_>   :     Agent       Float -> Opinion [ctor] .
+ op  <`(_,_`):_> : Agent Agent Float -> Edge    [ctor] .
+
+ --- Constant for checking consensus and stability 
+ op EPSILON : -> Float . 
+endfm
+
+view Opinion from TRIV to NODE-EDGE is
+  sort Elt to Opinion .
+endv
+
+view Agent from TRIV to NODE-EDGE is
+  sort Elt to Agent .
+endv
+
+view Edge from TRIV to NODE-EDGE is
+  sort Elt to Edge .
+endv
+
+--- Networks as set of opinions ad edges 
+fmod NETWORK is 
+
+ pr SET{Opinion}   * (sort Set{Opinion} to SetOpinion, sort NeSet{Opinion} to NeSetOpinion) .
+ pr SET{Edge}      * (sort Set{Edge} to SetEdge, sort NeSet{Edge} to NeSetEdge) .
+ pr SET{Agent}     * (sort Set{Agent} to SetAgent, sort NeSet{Agent} to NeSetAgent) .
+
+ sort Network . 
+ op < nodes:_ ; edges:_ > : SetOpinion SetEdge -> Network [ctor] .
+endfm
+
+
+view SetEdge from TRIV to NETWORK is
+  sort Elt to SetEdge .
+endv
+
+--- State of the system
+fmod STATE is
+ pr NETWORK .
+ sort State .
+
+ --- Network + the number of steps and communications 
+ op _ in step:_ comm:_ strat:_ : Network Nat Nat SetEdge -> State [ctor] .
+
+ --- ------------------
+ var SN           : SetOpinion .
+ var SE           : SetEdge .
+ var SA           : SetAgent .
+ var OP           : Opinion .
+ vars AG AG' AG'' : Agent .
+ vars W W'        : Float .
+ vars SO SO' SO'' : SetOpinion .
+ var STEPS        : Nat .
+ var COMM         : Nat .
+ var EDGES        : SetEdge .
+ --- ------------------
+
+ --- Some selectors 
+ op nodes : State -> SetOpinion .
+ op edges : State -> SetEdge    .
+ op strat : State -> SetEdge    .
+ op steps : State -> Nat .
+ op comm  : State -> Nat . 
+ eq nodes( < nodes: SN ; edges: SE >  in step: STEPS comm: COMM strat: EDGES)  = SN .
+ eq edges( < nodes: SN ; edges: SE >  in step: STEPS comm: COMM strat: EDGES)  = SE .
+ eq strat( < nodes: SN ; edges: SE >  in step: STEPS comm: COMM strat: EDGES)  = EDGES .
+ eq steps( < nodes: SN ; edges: SE >  in step: STEPS comm: COMM strat: EDGES)  = STEPS .
+ eq comm(  < nodes: SN ; edges: SE >  in step: STEPS comm: COMM strat: EDGES)  = COMM .
+
+ op opinion : Agent State -> Float .
+ eq opinion(AG, < nodes: (< AG : W >, SN) ; edges: SE >  in step: STEPS comm: COMM strat: EDGES ) = W .
+
+ --- Set of target agents in a set of edges
+ op incidents  : SetEdge          -> SetAgent .
+ op $incidents : SetEdge SetAgent -> SetAgent .
+
+ eq incidents(SE) = $incidents(SE, empty) .
+ eq $incidents(empty, SA) = SA .
+ eq $incidents(( <  (AG , AG') : W >, SE), SA) = 
+    $incidents(SE, (SA, AG')) .
+
+ --- Set of source and target agents in a set of edges
+ op source-target  : SetEdge          -> SetAgent .
+ op $source-target : SetEdge SetAgent -> SetAgent .
+
+ eq source-target(SE) = $source-target(SE, empty) .
+ eq $source-target(empty, SA) = SA .
+ eq $source-target(( <  (AG , AG') : W >, SE), SA) = 
+    $source-target(SE, (SA, AG')) .
+
+ --- Set of agents that influence a given agent
+ op influence : Agent SetEdge -> SetAgent .
+ op influence : Agent SetEdge SetAgent  -> SetAgent .
+ eq influence(AG, SE) = influence(AG, SE, empty) .
+ eq influence(AG, empty, SA) = SA .
+ eq influence(AG, ( < ( AG' , AG) : W >, SE), SA) = influence(AG, SE, (SA, AG')) .
+ eq influence(AG, ( < ( AG', AG'' ) : W >,  SE), SA) = influence(AG, SE, SA) [owise] .
+
+ --- Updating the opinions with a new set of opinions
+ op _//_ : SetOpinion SetOpinion -> SetOpinion .
+ op minus : SetOpinion SetOpinion SetOpinion -> SetOpinion .
+
+ eq SO // SO' = minus(SO, SO', empty) .
+ eq minus(SO, empty, SO'' ) = SO, SO'' .
+ eq minus( (< AG : W >, SO), ( < AG :  W' >, SO'), SO'') = 
+    minus( SO , SO', ( < AG :  W' > , SO'')) .
+
+ --- Checking consensus 
+ op consensus : State      -> Bool .
+ op consensus : SetOpinion -> Bool .
+ eq consensus(< nodes: SO ; edges: SE > in step: STEPS comm: COMM strat: EDGES ) =
+    consensus(SO) .
+ ceq consensus(( < AG :  W > ,  < AG' :  W' > , SO)) = false 
+     if abs(W - W') > EPSILON .
+ eq consensus(SO) = true [owise] .
+
+ --- Set of edges that are NOT self-loops
+ op non-self : SetEdge -> SetEdge .
+ eq non-self(empty) = empty .
+ eq non-self(( < ( AG , AG) : W >, SE)) = non-self(SE) .
+ ceq non-self(( < ( AG , AG') : W >, SE)) = ( < ( AG , AG') : W >, SE), non-self(SE) 
+     if AG =/= AG' .
+endfm
+
+
+--- The outcome of a strategy is a set of set of edges 
+fmod STRATEGY is
+ pr STATE . 
+
+ sort SetSetEdge . 
+ subsort NeSetEdge < SetSetEdge . 
+ op mt : -> SetSetEdge [ctor] .
+ op _;_ : SetSetEdge SetSetEdge -> SetSetEdge [ctor assoc comm id: mt] .
+
+ --- The 3 well-known strategies 
+ sort Model .
+ ops deGroot hybrid gossip : -> Model [ctor] .
+ ops hybrid>= : Nat -> Model [ctor] .
+ ops hybrid<= : Nat -> Model [ctor] .
+ ops hybrid=  : Nat -> Model [ctor] .
+
+ --- --------------------------
+ var SE            : SetEdge .
+ vars STR STR'     : SetSetEdge .
+ var E             : Edge .
+ var N             : Nat .
+ vars STATE STATE' : State .
+ var SA            : SetAgent .
+ var AG            : Agent .
+ vars MIN MAX      : Float .
+ var DIST          : Float .
+ var MEAN          : Float .
+ var SUM           : Float .
+ --- ----------------
+
+ --- Computing the 3 strategies 
+ op deGroot : SetEdge -> SetSetEdge .
+ eq deGroot(SE) = SE .
+
+ op gossip  : SetEdge           -> SetSetEdge [memo] .
+ op $gossip : SetEdge SetSetEdge -> SetSetEdge .
+
+ eq gossip(SE) = $gossip(SE, mt) .
+ eq $gossip(empty, STR) = STR .
+ eq $gossip((E, SE),  STR) = $gossip(SE, (STR ; E)) .
+
+ --- Powerset without the empty set 
+ op hybrid  : SetEdge -> SetSetEdge [memo] .
+ eq hybrid(empty) = mt .
+ ceq hybrid((E, SE)) = 
+    STR' ; add(E, STR') 
+ if STR' := hybrid(SE) .
+
+ op add  : Edge SetSetEdge          -> SetSetEdge .
+ op $add : Edge SetSetEdge SetSetEdge -> SetSetEdge .
+ eq add(E, STR) = $add(E, STR, mt) .
+ eq $add(E, mt, STR') = E ; STR' .
+ eq $add(E, (SE ; STR), STR') = $add(E, STR, STR' ; (E, SE)) .
+
+ op strategy : Model SetEdge -> SetSetEdge .
+ eq strategy(deGroot, SE) = deGroot(SE) .
+ eq strategy(gossip,  SE) = gossip(SE)  .
+ eq strategy(hybrid,  SE) = hybrid(SE)  .
+ eq strategy(hybrid>=(N),  SE)  = filter>=(N,hybrid(SE))  .
+ eq strategy(hybrid=(N) ,  SE)  = filter=(N,hybrid(SE))  .
+ eq strategy(hybrid<=(N) ,  SE) = filter<=(N,hybrid(SE))  .
+
+ --- Set of edges of a certain cardinality 
+ op filter= : Nat SetSetEdge -> SetSetEdge .
+ eq filter=(N, mt) = mt .
+ eq filter=(N, SE ; STR) = if | SE | == N then SE else mt fi ; filter=(N, STR) .
+ op filter>= : Nat SetSetEdge -> SetSetEdge .
+ eq filter>=(N, mt) = mt .
+ eq filter>=(N, SE ; STR) = if | SE | >= N then SE else mt fi ; filter>=(N, STR) .
+ op filter<= : Nat SetSetEdge -> SetSetEdge .
+ eq filter<=(N, mt) = mt .
+ eq filter<=(N, SE ; STR) = if | SE | <= N then SE else mt fi ; filter<=(N, STR) .
+
+ --- To be defined by the user
+ op update : State SetEdge Agent -> Float .  
+
+ --- Returning the distance between the lowest and the highest belif
+ op bdistance : State SetEdge -> Float .
+ op bdistance : State SetAgent Float Float -> Float .
+ eq bdistance(STATE, SE) = bdistance(STATE, source-target(SE), 1.0, 0.0) .
+ ceq bdistance(STATE, empty, MIN, MAX) = if DIST == 0.0 then 0.00000001 else DIST fi  --- cannot be 0 in pmaude 
+     if DIST := abs(MAX - MIN) .
+ eq bdistance(STATE, (AG, SA), MIN, MAX) = bdistance(STATE, SA, min(MIN, opinion(AG, STATE)), max(MAX, opinion(AG, STATE))) .
+
+ op distance : State State -> Float .
+ eq distance(STATE, STATE') = bdistance(STATE, strat(STATE')) .
+
+ --- Variance (on the agents involved in an interaction
+ op variance : State State -> Float . 
+ op variance : State SetEdge -> Float .
+ op variance : State SetAgent -> Float .
+ ceq variance(STATE, STATE') = if DIST == 0.0 then 0.00000001 else DIST fi 
+     if DIST := variance(STATE, strat(STATE')) .
+
+ eq variance(STATE, SE) = variance(STATE, source-target(SE)) .
+ eq variance(STATE, SA) = sumsquare(STATE, SA, mean(STATE, SA), 0.0) / float(| SA |) .
+ op sumsquare : State SetAgent Float Float -> Float .
+ eq sumsquare(STATE, empty, MEAN, SUM) = SUM .
+ eq sumsquare(STATE,  (AG, SA), MEAN, SUM) = sumsquare(STATE, SA, MEAN, (opinion(AG, STATE) - MEAN) ^ 2.0) .
+ op mean : State SetAgent -> Float .
+ eq mean(STATE, SA) = sum(STATE, SA, 0.0) / float(| SA |) .
+ op sum : State SetAgent Float -> Float .
+ eq sum(STATE, empty, SUM) = SUM .
+ eq sum(STATE, (AG, SA), SUM) = sum(STATE, SA, SUM + opinion(AG, STATE)) .
+
+endfm

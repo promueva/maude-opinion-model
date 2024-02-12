@@ -1,0 +1,31 @@
+***(
+ 
+ Analysis with DGroot
+***)
+
+load ./ex-vaccines .
+
+mod TEST is
+    pr VACCINES .
+
+    --- --------------------
+    var STATE   : State .
+    var SETEDGE : SetEdge .
+    var AG      : Agent .
+    --- --------------------
+
+    eq moduleName = 'TEST .
+    eq model = deGroot .
+    eq update(STATE, SETEDGE, AG) = update-dgroot(STATE, SETEDGE, AG) .
+
+endm
+
+eof 
+
+--- Consensus and number of steps in Degroot:
+search  init =>* STATE such that consensus(STATE) .
+
+Consensus:  0 : 4.80
+Steps: 34
+Communications: 272
+

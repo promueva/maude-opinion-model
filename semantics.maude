@@ -1,0 +1,173 @@
+***(
+
+Definition of the atomic rule and the step rule.
+
+The following operators must be defined in the user-module 
+
+op EPSILON : -> Float .                    --- Epsilon for checking consensus
+op model :        -> Model .               --- Defining the strategy
+op moduleName : -> Qid .                   --- Module to be analyzed
+op update : State SetEdge Agent -> Float . --- Update function
+
+***)
+
+load data .
+
+mod TRANSITION-SYSTEM is
+ pr STRATEGY .
+
+ --- -------------------------------
+ vars AG AG1 AG2 AGENT : Agent .
+ vars AG' AG''         : Agent .
+ vars SUMW PRODW ACC   : Float .
+ vars W VAL            : Float .
+ var BELIEF            : Float .
+ var BELIEF'           : Float .
+ var NETWORK           : Network .
+ vars SETEDGE NEDGES   : SetEdge .
+ vars EDGES            : SetEdge .
+ var NNODES            : SetOpinion .
+ var STATE             : State .
+ var SETAG             : SetAgent .
+ var COUNT             : Nat . 
+ vars PHI PHI'         : Float . 
+ --- -------------------------------
+
+ --- ----------------
+ --- Atomic transition 
+ --- ----------------
+ crl [atomic] : < AGENT : BELIEF >  =>  < AGENT :  BELIEF' >
+     if BELIEF' := update(STATE, EDGES, AGENT) [nonexec] .
+endm
+
+
+--- Definition of the different rewrite relations (according to the strategy)
+mod REW-RELATION is
+ pr META-LEVEL * (op nil to nil', op __ to _;;_, op append to append', 
+                  op tail to tail', op head to head', op last to last', 
+                  op front to front', op reverse to reverse', op size to size',
+                  op occurs to occurs', op $reverse to $reverse', op $size to $size') .
+ pr TRANSITION-SYSTEM . 
+
+ op error : -> Opinion .
+
+ --- To be defined in the user's module 
+ op model :        -> Model .
+ op moduleName : -> Qid .
+
+ --- ---------------------------
+ var Q            : Qid .
+ var NETWORK      : Network .
+ var M            : Module .
+ var SETNODE      : SetOpinion .
+ vars SO SO' SO'' : SetOpinion .
+ var SETEDGE      : SetEdge .
+ var SETEDGE'     : SetEdge .
+ vars AG AG'      : Agent .
+ vars W W'        : Float .
+ var SETAG        : SetAgent .
+ var STATE        : State .
+ var STATE'       : State .
+ var RES?         : ResultTriple? .
+ var OP           : Opinion .
+ var SUBS         : Substitution .
+ var SSE          : SetSetEdge .
+ var STEPS        : Nat .
+ var COMM         : Nat .
+ var EDGES        : SetEdge .
+ --- ---------------------------
+
+ crl [step] :   STATE => STATE'
+ if
+     not consensus(STATE) /\ --- just to avoid unnecessary rewritings 
+     SETEDGE' ; SSE := strategy(model, edges(STATE)) /\
+     STATE'         := step([moduleName], STATE,  SETEDGE') 
+     .
+
+
+ --- A rewriting step according to the strategy 
+ op step : Module State SetAgent SetOpinion SetEdge -> State .
+ op step : Module State                     SetEdge -> State .
+ eq step(M, STATE, EDGES) = step(M, STATE, incidents(EDGES), empty, EDGES) .
+
+ eq step(M, STATE, empty, SO, EDGES) =  < nodes: ( nodes(STATE) // SO) ; edges: edges(STATE) > 
+                                        in step: (steps(STATE) + 1) 
+                                        comm: (comm(STATE) + | non-self(EDGES) | ) strat: EDGES .
+ eq step(M, STATE, (AG, SETAG), SO, EDGES) = 
+    step(M, STATE, SETAG, (SO, next(M, AG, EDGES, STATE)), EDGES) .
+
+ op next : Module Agent SetEdge State -> Opinion . 
+ ceq  next(M, AG, EDGES, STATE) = OP 
+  if  SUBS := 'AGENT:Agent   <- upTerm(AG) ; 
+              'BELIEF:Float  <- upTerm(opinion(AG, STATE)) ; 
+              'STATE:State   <- upTerm(STATE) ; 
+              'EDGES:SetEdge <- upTerm(EDGES) /\ 
+      RES? := metaApply(M, upTerm(< AG :  opinion(AG, STATE) >), 'atomic, SUBS, 0) /\
+      OP   := if RES? == failure then error else downTerm(getTerm(RES?), error) fi .
+endm
+
+
+mod REW-RELATION-UPDATE is
+ including  REW-RELATION .
+
+ --- ----------------------------
+ var NETWORK         : Network .
+ vars AG AG' AG''    : Agent .
+ vars SETEDGE        : SetEdge .
+ var NNODES          : SetOpinion .
+ var COUNT           : Nat .
+ var SCOUNT          : Float . 
+ vars SUMW PRODW ACC : Float .
+ vars PHI PHI'       : Float .
+ vars W VAL          : Float .
+ var STEPS           : Nat .
+ var COMM            : Nat .
+ var EDGES           : SetEdge . 
+ --- ----------------------------
+
+ --- Instances of the update functions 
+ op update-dgroot : State SetEdge Agent -> Float .  
+ op update-gossip : State SetEdge Agent -> Float .  
+ op update-hybrid : State SetEdge Agent -> Float .  
+
+ ceq update-dgroot(  NETWORK  in step: STEPS comm: COMM strat: EDGES, SETEDGE, AG ) = 
+         if SCOUNT == 0.0 then opinion(AG, NETWORK  in step: STEPS comm: COMM strat: EDGES)
+           else opinion(AG,  NETWORK  in step: STEPS comm: COMM strat: EDGES) + (SUMW / SCOUNT) 
+         fi 
+ if 
+    SCOUNT  := sum-W(AG, SETEDGE) /\ 
+    SUMW := prod-diff(AG, nodes( NETWORK  in step: STEPS comm: COMM strat: EDGES ), SETEDGE) 
+    .
+
+ --- Update function for dgroot and hybrid are the same (modulo de chosen edges)
+ eq update-hybrid(  NETWORK  in step: STEPS comm: COMM strat: EDGES, SETEDGE, AG ) = 
+    update-dgroot(  NETWORK  in step: STEPS comm: COMM strat: EDGES, SETEDGE, AG ) .
+
+ op prod-diff : Agent SetOpinion SetEdge -> Float .
+ op prod-diff : Agent SetOpinion SetEdge Float -> Float .
+ eq prod-diff(AG, NNODES, SETEDGE) = prod-diff(AG, NNODES , SETEDGE, 0.0)  .
+ eq prod-diff(AG, NNODES, empty, SUMW) = SUMW .
+ eq prod-diff(AG, (NNODES, < AG : PHI > ,  < AG' :  PHI' > ), ( < (AG', AG ) :  W  >   ,SETEDGE), SUMW) = 
+    prod-diff(AG, (NNODES, < AG : PHI > ,  < AG' :  PHI' > ),                           SETEDGE , SUMW + (PHI' - PHI) * W ) .
+ eq prod-diff(AG, NNODES, ( < (AG' , AG'') :  W  >   ,SETEDGE), SUMW) = 
+    prod-diff(AG, NNODES,                    SETEDGE,  SUMW) [owise] .
+ --- Confirmation bias prod-diff(AG, (NNODES, (AG, PHI), (AG', PHI')),                  SETEDGE , SUMW + (PHI' - PHI) * W * (1.0 - abs(PHI' - PHI) )) .
+
+ op sum-W : Agent SetEdge -> Float .
+ op sum-W : Agent SetEdge Float -> Float .
+ eq sum-W(AG, SETEDGE) = sum-W(AG, SETEDGE, 0.0)  .
+ eq sum-W(AG, empty, SUMW) = SUMW .
+ eq sum-W(AG, ( < (AG', AG ) :  W  >   ,SETEDGE), SUMW) = 
+    sum-W(AG                           ,SETEDGE , SUMW + W ) .
+ eq sum-W(AG, ( < (AG' , AG'') :  W  >   ,SETEDGE), SUMW) = 
+    sum-W(AG,                             SETEDGE,  SUMW) [owise] .
+
+ --- Update function for Gossip
+ ceq update-gossip(  NETWORK  in step: STEPS comm: COMM strat: EDGES, < (AG' , AG) : W >, AG ) = 
+           opinion(AG,  NETWORK  in step: STEPS comm: COMM strat: EDGES) + W * (PHI' - PHI)
+ if 
+     PHI  := opinion(AG,  NETWORK  in step: STEPS comm: COMM strat: EDGES) /\
+     PHI' := opinion(AG',  NETWORK  in step: STEPS comm: COMM strat: EDGES) .
+ eq update-gossip(  NETWORK  in step: STEPS comm: COMM strat: EDGES, SETEDGE, AG ) = 
+     opinion(AG,  NETWORK  in step: STEPS comm: COMM strat: EDGES) [owise] .
+ endm
