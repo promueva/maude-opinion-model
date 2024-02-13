@@ -1,4 +1,4 @@
-# Unified Opinion Dynamic Modeling as Concurrent Set Relations in Rewriting Logic
+# Unified opinion dynamic modeling as concurrent set relations in rewriting logic
 
 Social media platforms have played a key role in weaponizing the polarization
 of social, political, and democratic processes. This is, mainly, because they
