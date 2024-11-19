@@ -100,7 +100,7 @@ fmod STATE is
  eq opinion(AG, < nodes: (< AG : W >, SN) ; edges: SE >  in step: STEPS comm: COMM strat: EDGES ) = W .
 
  --- Set of target agents in a set of edges
- op incidents  : SetEdge          -> SetAgent .
+ op incidents  : SetEdge          -> SetAgent [memo] .
  op $incidents : SetEdge SetAgent -> SetAgent .
 
  eq incidents(SE) = $incidents(SE, empty) .
@@ -180,13 +180,14 @@ fmod STRATEGY is
  var DIST          : Float .
  var MEAN          : Float .
  var SUM           : Float .
+ var R             : Float .
  --- ----------------
 
  --- Computing the 3 strategies 
  op deGroot : SetEdge -> SetSetEdge .
  eq deGroot(SE) = SE .
 
- op gossip  : SetEdge           -> SetSetEdge [memo] .
+ op gossip  : SetEdge            -> SetSetEdge [memo] .
  op $gossip : SetEdge SetSetEdge -> SetSetEdge .
 
  eq gossip(SE) = $gossip(SE, mt) .
@@ -206,7 +207,7 @@ fmod STRATEGY is
  eq $add(E, mt, STR') = E ; STR' .
  eq $add(E, (SE ; STR), STR') = $add(E, STR, STR' ; (E, SE)) .
 
- op strategy : Model SetEdge -> SetSetEdge .
+ op strategy : Model SetEdge -> SetSetEdge [memo] .
  eq strategy(deGroot, SE) = deGroot(SE) .
  eq strategy(gossip,  SE) = gossip(SE)  .
  eq strategy(hybrid,  SE) = hybrid(SE)  .
@@ -256,5 +257,9 @@ fmod STRATEGY is
  op sum : State SetAgent Float -> Float .
  eq sum(STATE, empty, SUM) = SUM .
  eq sum(STATE, (AG, SA), SUM) = sum(STATE, SA, SUM + opinion(AG, STATE)) .
+
+ --- Clamp function
+ op clamp : Float -> Float .
+ eq clamp(R) = min(max(R,0.0), 1.0) .
 
 endfm

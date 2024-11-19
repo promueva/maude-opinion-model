@@ -81,7 +81,7 @@ mod REW-RELATION is
  if
      not consensus(STATE) /\ --- just to avoid unnecessary rewritings 
      SETEDGE' ; SSE := strategy(model, edges(STATE)) /\
-     STATE'         := step([moduleName], STATE,  SETEDGE') 
+     STATE'         := step(upModule(moduleName,false), STATE,  SETEDGE') 
      .
 
 
@@ -99,7 +99,7 @@ mod REW-RELATION is
  op next : Module Agent SetEdge State -> Opinion . 
  ceq  next(M, AG, EDGES, STATE) = OP 
   if  SUBS := 'AGENT:Agent   <- upTerm(AG) ; 
-              'BELIEF:Float  <- upTerm(opinion(AG, STATE)) ; 
+              --- 'BELIEF:Float  <- upTerm(opinion(AG, STATE)) ; 
               'STATE:State   <- upTerm(STATE) ; 
               'EDGES:SetEdge <- upTerm(EDGES) /\ 
       RES? := metaApply(M, upTerm(< AG :  opinion(AG, STATE) >), 'atomic, SUBS, 0) /\
@@ -127,6 +127,8 @@ mod REW-RELATION-UPDATE is
 
  --- Instances of the update functions 
  op update-dgroot : State SetEdge Agent -> Float .  
+ --- DeGroot considering confirmation bias 
+ op update-dgroot-CB : State SetEdge Agent -> Float .  
  op update-gossip : State SetEdge Agent -> Float .  
  op update-hybrid : State SetEdge Agent -> Float .  
 
@@ -138,6 +140,16 @@ mod REW-RELATION-UPDATE is
     SCOUNT  := sum-W(AG, SETEDGE) /\ 
     SUMW := prod-diff(AG, nodes( NETWORK  in step: STEPS comm: COMM strat: EDGES ), SETEDGE) 
     .
+
+ ceq update-dgroot-CB(  NETWORK  in step: STEPS comm: COMM strat: EDGES, SETEDGE, AG ) = 
+         if SCOUNT == 0.0 then opinion(AG, NETWORK  in step: STEPS comm: COMM strat: EDGES)
+           else opinion(AG,  NETWORK  in step: STEPS comm: COMM strat: EDGES) + (SUMW / SCOUNT) 
+         fi 
+ if 
+    SCOUNT  := sum-W(AG, SETEDGE) /\ 
+    SUMW := prod-diff-CB(AG, nodes( NETWORK  in step: STEPS comm: COMM strat: EDGES ), SETEDGE) 
+    .
+
 
  --- Update function for dgroot and hybrid are the same (modulo de chosen edges)
  eq update-hybrid(  NETWORK  in step: STEPS comm: COMM strat: EDGES, SETEDGE, AG ) = 
@@ -151,6 +163,18 @@ mod REW-RELATION-UPDATE is
     prod-diff(AG, (NNODES, < AG : PHI > ,  < AG' :  PHI' > ),                           SETEDGE , SUMW + (PHI' - PHI) * W ) .
  eq prod-diff(AG, NNODES, ( < (AG' , AG'') :  W  >   ,SETEDGE), SUMW) = 
     prod-diff(AG, NNODES,                    SETEDGE,  SUMW) [owise] .
+
+
+ --- Version Confirmation Bias
+ op prod-diff-CB : Agent SetOpinion SetEdge -> Float .
+ op prod-diff-CB : Agent SetOpinion SetEdge Float -> Float .
+ eq prod-diff-CB(AG, NNODES, SETEDGE) = prod-diff-CB(AG, NNODES , SETEDGE, 0.0)  .
+ eq prod-diff-CB(AG, NNODES, empty, SUMW) = SUMW .
+ eq prod-diff-CB(AG, (NNODES, < AG : PHI > ,  < AG' :  PHI' > ), ( < (AG', AG ) :  W  >   ,SETEDGE), SUMW) = 
+    prod-diff-CB(AG, (NNODES, < AG : PHI > ,  < AG' :  PHI' > ),                           SETEDGE , SUMW + (PHI' - PHI) * W * (1.0 - abs(PHI' - PHI) )) .
+ eq prod-diff-CB(AG, NNODES, ( < (AG' , AG'') :  W  >   ,SETEDGE), SUMW) = 
+    prod-diff-CB(AG, NNODES,                    SETEDGE,  SUMW) [owise] .
+
  --- Confirmation bias prod-diff(AG, (NNODES, (AG, PHI), (AG', PHI')),                  SETEDGE , SUMW + (PHI' - PHI) * W * (1.0 - abs(PHI' - PHI) )) .
 
  op sum-W : Agent SetEdge -> Float .
