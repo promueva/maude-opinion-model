@@ -113,16 +113,18 @@ mod REW-RELATION-UPDATE is
  --- ----------------------------
  var NETWORK         : Network .
  vars AG AG' AG''    : Agent .
- vars SETEDGE        : SetEdge .
+ var SETEDGE         : SetEdge .
+ var SETEDGE'        : SetEdge .
  var NNODES          : SetOpinion .
  var COUNT           : Nat .
  var SCOUNT          : Float . 
  vars SUMW PRODW ACC : Float .
  vars PHI PHI'       : Float .
- vars W VAL          : Float .
+ vars W VAL R        : Float .
  var STEPS           : Nat .
  var COMM            : Nat .
  var EDGES           : SetEdge . 
+ var SUM             : Float .
  --- ----------------------------
 
  --- Instances of the update functions 
@@ -194,4 +196,38 @@ mod REW-RELATION-UPDATE is
      PHI' := opinion(AG',  NETWORK  in step: STEPS comm: COMM strat: EDGES) .
  eq update-gossip(  NETWORK  in step: STEPS comm: COMM strat: EDGES, SETEDGE, AG ) = 
      opinion(AG,  NETWORK  in step: STEPS comm: COMM strat: EDGES) [owise] .
+
+ --- General version with different cognitive biases 
+    op beta : Agent Agent Float -> Float . --- To be defined by the user 
+
+    op update-beta : State SetEdge Agent -> Float .  
+
+    ceq update-beta(NETWORK  in step: STEPS comm: COMM strat: EDGES, SETEDGE, AG ) = 
+                clamp(opinion(AG,  NETWORK  in step: STEPS comm: COMM strat: EDGES) + SUM)
+    if 
+       SUM := prod-diff-beta(AG, nodes( NETWORK  in step: STEPS comm: COMM strat: EDGES ), SETEDGE) 
+       .
+
+
+    op prod-diff-beta : Agent SetOpinion SetEdge -> Float .
+    op prod-diff-beta : Agent SetOpinion SetEdge SetEdge Float -> Float .
+    eq prod-diff-beta(AG, NNODES, SETEDGE) = prod-diff-beta(AG, NNODES , SETEDGE, SETEDGE, 0.0)  .
+    eq prod-diff-beta(AG, NNODES, empty, SETEDGE', SUMW) = SUMW .
+    eq prod-diff-beta(AG, (NNODES, < AG : PHI > ,  < AG' :  PHI' > ), ( < (AG', AG ) :  W  >   ,SETEDGE), SETEDGE', SUMW) = 
+       prod-diff-beta(AG, (NNODES, < AG : PHI > ,  < AG' :  PHI' > ),                           SETEDGE , SETEDGE', SUMW + beta(AG, AG', PHI' - PHI) * prop-inf(AG, SETEDGE', W ) ) .
+    eq prod-diff-beta(AG, NNODES, ( < (AG' , AG'') :  W  >   ,SETEDGE), SETEDGE', SUMW) = 
+       prod-diff-beta(AG, NNODES,                             SETEDGE,  SETEDGE', SUMW) [owise] .
+
+    op prop-inf : Agent  SetEdge Float  -> Float .
+    eq prop-inf(AG, SETEDGE, W) =  W / sum-W(AG, SETEDGE) .
+
+    --- Cognitive biases 
+    op fan : Float -> Float . --- Authority
+    eq fan(R) = if R == 0.0 then 0.0 else R / abs(R) fi .
+    op backf : Float -> Float .  ---Backfire 
+    eq backf(R) = -1.0 * R * R * R .
+    op id : Float -> Float .  --- Identity (DeGroot)
+    eq id(R) = R .
+    op conf : Float -> Float .  --- Confirmation 
+    eq conf(R) = R * (1.0001 - abs(R)) / (1.0001) .
  endm

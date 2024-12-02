@@ -1,0 +1,51 @@
+***(
+ 
+ Analysis with DeGroot model extended with Cognitive Biases as proposed in 
+
+Mário S. Alvim, Artur Gaspar da Silva, Sophia Knight, Frank Valencia: A
+Multi-agent Model for Opinion Evolution in Social Networks Under Cognitive
+Biases. FORTE 2024: 3-19
+
+The values of the network are taken from those in Figure 1 in the paper. 
+
+***)
+
+load ex-vaccines . 
+
+mod MODEL is
+    pr VACCINES .
+
+    --- --------------------
+    var STATE        : State .
+    var SETEDGE      : SetEdge .
+    vars AG AG'      : Agent .
+    var R            : Float .
+    --- --------------------
+
+    eq moduleName = 'MODEL .
+    eq model = deGroot .
+    eq update(STATE, SETEDGE, AG) = update-beta(STATE, SETEDGE, AG) .
+
+
+    --- -----------------------
+    eq beta(AG, AG', R) = id(R) .
+    --- -----------------------
+
+endm
+
+eof
+search  init =>* STATE such that consensus(STATE) .
+
+    --- Scenario 1
+    eq beta(AG, AG', R) = backf(R) .
+    --- Scenario 2
+    eq beta(AG, AG', R) = fan(R) .
+
+    --- Scenario 3
+    eq beta(1,0,R) = fan(R) .
+    eq beta(2,0,R) = fan(R) .
+    eq beta(0,5,R) = backf(R) .
+    eq beta(AG, AG', R) = conf(R) [owise] .
+
+    --- DeGroot
+    eq beta(AG, AG', R) = id(R) .
