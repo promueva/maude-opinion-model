@@ -8,7 +8,7 @@ The following sorts (and operators) must be populated with user defined
 constructors (and equations):
  * Sort Agent for agents' identifiers (e.g., subsort Nat < Agent) 
 
-Opinions are terms of the form (AG, FLOAT) and edges are terms of the form 
+Opinions are terms of the form (AG, AGENTSTATE) and edges are terms of the form 
 (AG, WEIGHT, AG')
 
 A Network takes the form < nodes: NODES ; edges: EDGES >
@@ -25,11 +25,16 @@ EPSILON (for checking consensus) must be defined in the user module
 fmod NODE-EDGE is
  pr CONVERSION . 
  pr EXT-BOOL .
- sorts Agent .
+ sort Agent .
  sort Opinion Edge .
+ sort AgentState .
 
- op  <_:_>   :     Agent       Float -> Opinion [ctor] .
- op  <`(_,_`):_> : Agent Agent Float -> Edge    [ctor] .
+ --- op  <_:_>   :     Agent       Float   -> Opinion [ctor] .
+ op  <_:_>   :     Agent  AgentState       -> Opinion [ctor] .
+ op  <`(_,_`):_> : Agent Agent Float       -> Edge    [ctor] .
+ op [_]   :        Float                   -> AgentState [ctor] .
+ op [_,_,_] :      Float Float Float       -> AgentState [ctor] .
+ op [_,_,_,_] :    Float Float Float Float -> AgentState [ctor] .
 
  --- Constant for checking consensus and stability 
  op EPSILON : -> Float . 
@@ -77,7 +82,10 @@ fmod STATE is
  var SA           : SetAgent .
  var OP           : Opinion .
  vars AG AG' AG'' : Agent .
- vars W W'        : Float .
+ vars W W' W''    : Float .
+ vars SL SL' P P' : Float .
+ vars ST ST'      : AgentState .
+ vars TR TR'      : Float .
  vars SO SO' SO'' : SetOpinion .
  var STEPS        : Nat .
  var COMM         : Nat .
@@ -97,7 +105,24 @@ fmod STATE is
  eq comm(  < nodes: SN ; edges: SE >  in step: STEPS comm: COMM strat: EDGES)  = COMM .
 
  op opinion : Agent State -> Float .
- eq opinion(AG, < nodes: (< AG : W >, SN) ; edges: SE >  in step: STEPS comm: COMM strat: EDGES ) = W .
+ --- eq opinion(AG, < nodes: (< AG : W >, SN) ; edges: SE >  in step: STEPS comm: COMM strat: EDGES ) = W .
+ eq opinion(AG, < nodes: (< AG : [ W ] >, SN) ; edges: SE >  in step: STEPS comm: COMM strat: EDGES ) = W .
+ eq opinion(AG, < nodes: (< AG : [ W, W', TR ] >, SN) ; edges: SE >  in step: STEPS comm: COMM strat: EDGES ) = W .
+ eq opinion(AG, < nodes: (< AG : [ W, W', W'', TR ] >, SN) ; edges: SE >  in step: STEPS comm: COMM strat: EDGES ) = W .
+
+ op public-opinion : Agent State -> Float .
+ eq public-opinion(AG, < nodes: (< AG : [ W, W', W'', TR ] >, SN) ; edges: SE >  in step: STEPS comm: COMM strat: EDGES ) = W'' .
+
+ op state : Agent State -> AgentState .
+ eq state(AG, < nodes: (< AG : ST >, SN) ; edges: SE >  in step: STEPS comm: COMM strat: EDGES ) = ST .
+
+ op silence : Agent State -> Float .
+ eq silence(AG, < nodes: (< AG : [ W, W', TR ] >, SN) ; edges: SE >  in step: STEPS comm: COMM strat: EDGES ) = W' .
+
+ op tolerance : Agent State -> Float .
+ eq tolerance(AG, < nodes: (< AG : [ W, SL, TR ] >, SN) ; edges: SE >  in step: STEPS comm: COMM strat: EDGES ) = TR .
+ eq tolerance(AG, < nodes: (< AG : [ W, SL, P, TR ] >, SN) ; edges: SE >  in step: STEPS comm: COMM strat: EDGES ) = TR .
+
 
  --- Set of target agents in a set of edges
  op incidents  : SetEdge          -> SetAgent [memo] .
@@ -122,8 +147,16 @@ fmod STATE is
  op influence : Agent SetEdge SetAgent  -> SetAgent .
  eq influence(AG, SE) = influence(AG, SE, empty) .
  eq influence(AG, empty, SA) = SA .
- eq influence(AG, ( < ( AG' , AG) : W >, SE), SA) = influence(AG, SE, (SA, AG')) .
+ ceq influence(AG, ( < ( AG' , AG) : W >, SE), SA) = influence(AG, SE, (SA, AG')) if AG =/= AG' .
  eq influence(AG, ( < ( AG', AG'' ) : W >,  SE), SA) = influence(AG, SE, SA) [owise] .
+
+ --- Set of non-silent agents that influence a given agent
+ op ns-influence : Agent SetEdge SetOpinion -> SetAgent .
+ op ns-influence : Agent SetEdge SetOpinion SetAgent  -> SetAgent .
+ eq ns-influence(AG, SE, SO) = ns-influence(AG, SE, SO, empty) .
+ eq ns-influence(AG, empty, SO, SA) = SA .
+ ceq ns-influence(AG, ( < ( AG' , AG) : W >, SE), (< AG' : [ W', SL', TR' ] >, SO), SA) = ns-influence(AG, SE, SO, (SA, AG')) if SL' == 1.0 .
+ eq ns-influence(AG, ( < ( AG', AG'' ) : W >,  SE), SO, SA) = ns-influence(AG, SE, SO, SA) [owise] .
 
  --- Updating the opinions with a new set of opinions
  op _//_ : SetOpinion SetOpinion -> SetOpinion .
@@ -131,16 +164,20 @@ fmod STATE is
 
  eq SO // SO' = minus(SO, SO', empty) .
  eq minus(SO, empty, SO'' ) = SO, SO'' .
- eq minus( (< AG : W >, SO), ( < AG :  W' >, SO'), SO'') = 
-    minus( SO , SO', ( < AG :  W' > , SO'')) .
+ eq minus( (< AG : ST >, SO), ( < AG :  ST' >, SO'), SO'') = 
+    minus( SO , SO', ( < AG :  ST' > , SO'')) .
 
  --- Checking consensus 
  op consensus : State      -> Bool .
  op consensus : SetOpinion -> Bool .
  eq consensus(< nodes: SO ; edges: SE > in step: STEPS comm: COMM strat: EDGES ) =
     consensus(SO) .
- ceq consensus(( < AG :  W > ,  < AG' :  W' > , SO)) = false 
-     if abs(W - W') > EPSILON .
+ ceq consensus(( < AG : [ W ] > ,  < AG' : [ W' ] > , SO)) = false 
+    if abs(W - W') > EPSILON .
+ ceq consensus(( < AG : [ W, SL, TR ] > ,  < AG' : [ W', SL', TR' ] > , SO)) = false 
+    if abs(W - W') > EPSILON .
+ ceq consensus(( < AG : [ W, SL, P, TR ] > ,  < AG' : [ W', SL', P', TR' ] > , SO)) = false 
+    if abs(W - W') > EPSILON .
  eq consensus(SO) = true [owise] .
 
  --- Set of edges that are NOT self-loops
@@ -227,7 +264,8 @@ fmod STRATEGY is
  eq filter<=(N, SE ; STR) = if | SE | <= N then SE else mt fi ; filter<=(N, STR) .
 
  --- To be defined by the user
- op update : State SetEdge Agent -> Float .  
+ --- op update : State SetEdge Agent -> Float .
+ op update : State SetEdge Agent -> AgentState .  
 
  --- Returning the distance between the lowest and the highest belif
  op bdistance : State SetEdge -> Float .

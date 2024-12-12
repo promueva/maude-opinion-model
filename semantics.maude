@@ -21,8 +21,8 @@ mod TRANSITION-SYSTEM is
  vars AG' AG''         : Agent .
  vars SUMW PRODW ACC   : Float .
  vars W VAL            : Float .
- var BELIEF            : Float .
- var BELIEF'           : Float .
+ var BELIEF            : AgentState .
+ var BELIEF'           : AgentState .
  var NETWORK           : Network .
  vars SETEDGE NEDGES   : SetEdge .
  vars EDGES            : SetEdge .
@@ -102,7 +102,7 @@ mod REW-RELATION is
               --- 'BELIEF:Float  <- upTerm(opinion(AG, STATE)) ; 
               'STATE:State   <- upTerm(STATE) ; 
               'EDGES:SetEdge <- upTerm(EDGES) /\ 
-      RES? := metaApply(M, upTerm(< AG :  opinion(AG, STATE) >), 'atomic, SUBS, 0) /\
+      RES? := metaApply(M, upTerm(< AG : state(AG, STATE) >), 'atomic, SUBS, 0) /\
       OP   := if RES? == failure then error else downTerm(getTerm(RES?), error) fi .
 endm
 
@@ -128,15 +128,15 @@ mod REW-RELATION-UPDATE is
  --- ----------------------------
 
  --- Instances of the update functions 
- op update-dgroot : State SetEdge Agent -> Float .  
+ op update-dgroot : State SetEdge Agent -> AgentState .  
  --- DeGroot considering confirmation bias 
- op update-dgroot-CB : State SetEdge Agent -> Float .  
- op update-gossip : State SetEdge Agent -> Float .  
- op update-hybrid : State SetEdge Agent -> Float .  
+ op update-dgroot-CB : State SetEdge Agent -> AgentState .  
+ op update-gossip : State SetEdge Agent -> AgentState .  
+ op update-hybrid : State SetEdge Agent -> AgentState .  
 
  ceq update-dgroot(  NETWORK  in step: STEPS comm: COMM strat: EDGES, SETEDGE, AG ) = 
-         if SCOUNT == 0.0 then opinion(AG, NETWORK  in step: STEPS comm: COMM strat: EDGES)
-           else opinion(AG,  NETWORK  in step: STEPS comm: COMM strat: EDGES) + (SUMW / SCOUNT) 
+         if SCOUNT == 0.0 then [ opinion(AG, NETWORK  in step: STEPS comm: COMM strat: EDGES) ]
+           else [ opinion(AG,  NETWORK  in step: STEPS comm: COMM strat: EDGES) + (SUMW / SCOUNT) ] 
          fi 
  if 
     SCOUNT  := sum-W(AG, SETEDGE) /\ 
@@ -144,8 +144,8 @@ mod REW-RELATION-UPDATE is
     .
 
  ceq update-dgroot-CB(  NETWORK  in step: STEPS comm: COMM strat: EDGES, SETEDGE, AG ) = 
-         if SCOUNT == 0.0 then opinion(AG, NETWORK  in step: STEPS comm: COMM strat: EDGES)
-           else opinion(AG,  NETWORK  in step: STEPS comm: COMM strat: EDGES) + (SUMW / SCOUNT) 
+         if SCOUNT == 0.0 then [ opinion(AG, NETWORK  in step: STEPS comm: COMM strat: EDGES) ]
+           else [ opinion(AG,  NETWORK  in step: STEPS comm: COMM strat: EDGES) + (SUMW / SCOUNT) ] 
          fi 
  if 
     SCOUNT  := sum-W(AG, SETEDGE) /\ 
@@ -161,8 +161,8 @@ mod REW-RELATION-UPDATE is
  op prod-diff : Agent SetOpinion SetEdge Float -> Float .
  eq prod-diff(AG, NNODES, SETEDGE) = prod-diff(AG, NNODES , SETEDGE, 0.0)  .
  eq prod-diff(AG, NNODES, empty, SUMW) = SUMW .
- eq prod-diff(AG, (NNODES, < AG : PHI > ,  < AG' :  PHI' > ), ( < (AG', AG ) :  W  >   ,SETEDGE), SUMW) = 
-    prod-diff(AG, (NNODES, < AG : PHI > ,  < AG' :  PHI' > ),                           SETEDGE , SUMW + (PHI' - PHI) * W ) .
+ eq prod-diff(AG, (NNODES, < AG : [ PHI ] > ,  < AG' : [ PHI' ] > ), ( < (AG', AG ) :  W  >   ,SETEDGE), SUMW) = 
+    prod-diff(AG, (NNODES, < AG : [ PHI ] > ,  < AG' : [ PHI' ] > ),                           SETEDGE , SUMW + (PHI' - PHI) * W ) .
  eq prod-diff(AG, NNODES, ( < (AG' , AG'') :  W  >   ,SETEDGE), SUMW) = 
     prod-diff(AG, NNODES,                    SETEDGE,  SUMW) [owise] .
 
@@ -172,8 +172,8 @@ mod REW-RELATION-UPDATE is
  op prod-diff-CB : Agent SetOpinion SetEdge Float -> Float .
  eq prod-diff-CB(AG, NNODES, SETEDGE) = prod-diff-CB(AG, NNODES , SETEDGE, 0.0)  .
  eq prod-diff-CB(AG, NNODES, empty, SUMW) = SUMW .
- eq prod-diff-CB(AG, (NNODES, < AG : PHI > ,  < AG' :  PHI' > ), ( < (AG', AG ) :  W  >   ,SETEDGE), SUMW) = 
-    prod-diff-CB(AG, (NNODES, < AG : PHI > ,  < AG' :  PHI' > ),                           SETEDGE , SUMW + (PHI' - PHI) * W * (1.0 - abs(PHI' - PHI) )) .
+ eq prod-diff-CB(AG, (NNODES, < AG : [ PHI ] > ,  < AG' : [ PHI' ] > ), ( < (AG', AG ) :  W  >   ,SETEDGE), SUMW) = 
+    prod-diff-CB(AG, (NNODES, < AG : [ PHI ] > ,  < AG' : [ PHI' ] > ),                           SETEDGE , SUMW + (PHI' - PHI) * W * (1.0 - abs(PHI' - PHI) )) .
  eq prod-diff-CB(AG, NNODES, ( < (AG' , AG'') :  W  >   ,SETEDGE), SUMW) = 
     prod-diff-CB(AG, NNODES,                    SETEDGE,  SUMW) [owise] .
 
@@ -190,20 +190,20 @@ mod REW-RELATION-UPDATE is
 
  --- Update function for Gossip
  ceq update-gossip(  NETWORK  in step: STEPS comm: COMM strat: EDGES, < (AG' , AG) : W >, AG ) = 
-           opinion(AG,  NETWORK  in step: STEPS comm: COMM strat: EDGES) + W * (PHI' - PHI)
+           [ opinion(AG,  NETWORK  in step: STEPS comm: COMM strat: EDGES) + W * (PHI' - PHI) ]
  if 
      PHI  := opinion(AG,  NETWORK  in step: STEPS comm: COMM strat: EDGES) /\
      PHI' := opinion(AG',  NETWORK  in step: STEPS comm: COMM strat: EDGES) .
  eq update-gossip(  NETWORK  in step: STEPS comm: COMM strat: EDGES, SETEDGE, AG ) = 
-     opinion(AG,  NETWORK  in step: STEPS comm: COMM strat: EDGES) [owise] .
+     [ opinion(AG,  NETWORK  in step: STEPS comm: COMM strat: EDGES) ] [owise] .
 
  --- General version with different cognitive biases 
     op beta : Agent Agent Float -> Float . --- To be defined by the user 
 
-    op update-beta : State SetEdge Agent -> Float .  
+    op update-beta : State SetEdge Agent -> AgentState .  
 
     ceq update-beta(NETWORK  in step: STEPS comm: COMM strat: EDGES, SETEDGE, AG ) = 
-                clamp(opinion(AG,  NETWORK  in step: STEPS comm: COMM strat: EDGES) + SUM)
+                [ clamp(opinion(AG,  NETWORK  in step: STEPS comm: COMM strat: EDGES) + SUM) ]
     if 
        SUM := prod-diff-beta(AG, nodes( NETWORK  in step: STEPS comm: COMM strat: EDGES ), SETEDGE) 
        .
@@ -213,8 +213,8 @@ mod REW-RELATION-UPDATE is
     op prod-diff-beta : Agent SetOpinion SetEdge SetEdge Float -> Float .
     eq prod-diff-beta(AG, NNODES, SETEDGE) = prod-diff-beta(AG, NNODES , SETEDGE, SETEDGE, 0.0)  .
     eq prod-diff-beta(AG, NNODES, empty, SETEDGE', SUMW) = SUMW .
-    eq prod-diff-beta(AG, (NNODES, < AG : PHI > ,  < AG' :  PHI' > ), ( < (AG', AG ) :  W  >   ,SETEDGE), SETEDGE', SUMW) = 
-       prod-diff-beta(AG, (NNODES, < AG : PHI > ,  < AG' :  PHI' > ),                           SETEDGE , SETEDGE', SUMW + beta(AG, AG', PHI' - PHI) * prop-inf(AG, SETEDGE', W ) ) .
+    eq prod-diff-beta(AG, (NNODES, < AG : [ PHI ] > ,  < AG' : [ PHI' ] > ), ( < (AG', AG ) :  W  >   ,SETEDGE), SETEDGE', SUMW) = 
+       prod-diff-beta(AG, (NNODES, < AG : [ PHI ] > ,  < AG' : [ PHI' ] > ),                           SETEDGE , SETEDGE', SUMW + beta(AG, AG', PHI' - PHI) * prop-inf(AG, SETEDGE', W ) ) .
     eq prod-diff-beta(AG, NNODES, ( < (AG' , AG'') :  W  >   ,SETEDGE), SETEDGE', SUMW) = 
        prod-diff-beta(AG, NNODES,                             SETEDGE,  SETEDGE', SUMW) [owise] .
 

@@ -1,0 +1,151 @@
+***(
+ 
+ Analysis with Silence Spiral model as proposed in 
+
+Jesús Aranda, Juan Francisco Díaz, David Gaona, Frank Valencia: The Sound of Silence in Social Networks. 
+
+***)
+
+load semantics .
+
+mod VACCINES is
+    pr REW-RELATION-UPDATE . 
+    eq EPSILON = 0.00001 .
+    subsort Nat < Agent .
+
+    vars S L R : State .
+
+    op nodes   : -> SetOpinion .
+    op edges   : -> SetEdge .
+    op initnet : -> Network .
+
+    ---(
+    eq nodes = < 1 : [ 1.0, 1.0, 0.1 ] >, < 2 : [ 0.9, 1.0, 0.1 ] >, < 3 : [ 0.8, 1.0, 0.1 ] >, < 4 : [ 0.2, 1.0, 0.1 ] >, < 5 : [ 0.1, 1.0, 0.1 ] >, < 6  : [ 0.0, 1.0, 0.1 ] > .
+    eq edges = < ( 6 , 1) : 0.3846153846153846 > ,
+               < ( 1 , 2) : 0.375 > ,
+               < ( 2 , 1) : 0.23076923076923075 > ,
+               < ( 2 , 4) : 0.25 > ,
+               < ( 4 , 6) : 0.2 > ,
+               < ( 4 , 3) : 0.125 > ,
+               < ( 3 , 4) : 0.125 > ,
+               < ( 1 , 3) : 0.25 > ,
+               < ( 3 , 5) : 0.375 > ,
+               < ( 5 , 6) : 0.3 > ,
+               --- Self loops
+               < (1 , 1) : 0.3846153846153846 >,
+               < (2 , 2) : 0.625 > ,
+               < (3 , 3) : 0.625 > ,
+               < (4 , 4) : 0.625 > ,
+               < (5 , 5) : 0.625 > ,
+               < (6 , 6) : 0.5 > .
+    )
+
+    --- Graph Figure 1
+    ---(
+    eq nodes = < 1 : [ 1.0, 1.0, 1.0 ] >, < 2 : [ 0.0, 1.0, 1.0 ] > .
+    eq edges = < (1, 2) : 1.0 >, < (2, 1) : 1.0 > .
+    )
+
+    --- Graph Figure 2
+    ---(
+    eq nodes = < 1 : [ 1.0, 1.0, 0.2 ] >, < 2 : [ 0.8, 1.0, 0.15 ] >, < 3 : [ 0.5, 1.0, 0.1 ] >, < 4 : [ 0.2, 1.0, 0.15 ] >, < 5 : [ 0.0, 1.0, 0.2 ] > .
+    eq edges = < (1, 2) : 0.4 >, < (1, 3) : 0.2 >,
+               < (2, 1) : 0.4 >, < (2, 3) : 0.2 >,
+               < (3, 1) : 0.1 >, < (3, 2) : 0.1 >, < (3, 4) : 0.1 >, < (3, 5) : 0.1 >,  
+               < (4, 3) : 0.2 >, < (4, 5) : 0.4 >,
+               < (5, 3) : 0.2 >, < (5, 4) : 0.4 > .
+    )
+
+    --- Graph Figure 4
+    eq nodes = < 1 : [ 0.1, 1.0, 0.1 ] >, < 2 : [ 0.2, 1.0, 0.05 ] >, < 3 : [ 0.15, 1.0, 0.1 ] >, < 4 : [ 1.0, 1.0, 0.85 ] >, < 5 : [ 0.85, 1.0, 0.6 ] >, < 6 : [ 0.25, 1.0, 0.05 ] >, < 7 : [ 0.3, 1.0, 0.1 ] >, < 8 : [ 0.05, 1.0, 0.05 ] > .
+    eq edges = < (1, 4) : 0.05 >, < (2, 4) : 0.1 >, < (3, 4) : 0.1 >,
+               < (4, 1) : 0.2 >, < (4, 2) : 0.2 >, < (4, 3) : 0.2 >, < (4, 5) : 0.5 >,
+               < (5, 4) : 0.25 >, < (5, 6) : 0.2 >, < (5, 7) : 0.2 >, < (5, 8) : 0.2 >, 
+               < (6, 5) : 0.1 >, < (7, 5) : 0.1 >, < (8, 5) : 0.05 > .
+
+    eq initnet =  < nodes: nodes ; edges: edges >  .
+
+    op init : -> State .
+    eq init =  initnet  in step: 0 comm: 0 strat: empty .
+
+endm
+
+mod TEST is
+    pr VACCINES .
+
+    --- --------------------
+    var STATE        : State .
+    var SETEDGE      : SetEdge .
+    var SETEDGE'     : SetEdge .
+    vars AG AG' AG'' : Agent .
+    var EDGE         : Edge .
+    var SUM          : Float .
+    vars R W         : Float .
+    var NNODES       : SetOpinion .
+    var SO           : SetOpinion .
+    var NETWORK      : Network .
+    vars PHI PHI'    : Float .
+    vars SL SL'      : Float .
+    vars TR TR'      : Float .
+    var STEPS        : Nat .
+    var COMM         : Nat .
+    var COUNT        : Nat .
+    var EDGES        : SetEdge .
+    var  SUMW        : Float .
+    var SCOUNT       : Float .
+    var SA NSA       : SetAgent .
+    -----------------------
+
+    eq moduleName = 'TEST .
+    eq model = deGroot .
+    eq update(STATE, SETEDGE, AG) = update-silence-spiral(STATE, SETEDGE, AG) .
+
+    --- ou + sum ( overline(ivu) beta uv * su * (ov - ou))
+    op update-silence-spiral : State SetEdge Agent -> AgentState .
+
+    eq update-silence-spiral(  NETWORK  in step: STEPS comm: COMM strat: EDGES, SETEDGE, AG ) =
+        [ update-opinion(AG,  NETWORK  in step: STEPS comm: COMM strat: EDGES, SETEDGE),
+          update-silence(AG,  NETWORK  in step: STEPS comm: COMM strat: EDGES, SETEDGE),
+          tolerance(AG,  NETWORK  in step: STEPS comm: COMM strat: EDGES) ] .
+
+    op update-opinion : Agent State SetEdge -> Float .
+    ceq update-opinion(AG, NETWORK  in step: STEPS comm: COMM strat: EDGES, SETEDGE) = 
+         opinion(AG,  NETWORK  in step: STEPS comm: COMM strat: EDGES) + SUMW
+    if 
+        SUMW := prod-diff-spi(AG, nodes( NETWORK  in step: STEPS comm: COMM strat: EDGES ), SETEDGE)
+    .
+
+    op prod-diff-spi : Agent SetOpinion SetEdge -> Float .
+    op prod-diff-spi : Agent SetOpinion SetEdge Float -> Float .
+    eq prod-diff-spi(AG, NNODES, SETEDGE) = prod-diff-spi(AG, NNODES , SETEDGE, 0.0)  .
+    eq prod-diff-spi(AG, NNODES, empty, SUMW) = SUMW .
+    eq prod-diff-spi(AG, (NNODES, < AG : [ PHI , SL, TR ] > ,  < AG' : [ PHI', SL', TR' ] > ), ( < (AG', AG ) :  W  >,    SETEDGE), SUMW) = 
+       prod-diff-spi(AG, (NNODES, < AG : [ PHI , SL, TR ] > ),                                                            SETEDGE , SUMW + (PHI' - PHI) * SL' * W ) .
+    eq prod-diff-spi(AG, NNODES, ( < (AG' , AG'') :  W  >  , SETEDGE), SUMW) = 
+       prod-diff-spi(AG, NNODES,                    SETEDGE,  SUMW) [owise] .
+
+    op update-silence : Agent State SetEdge -> Float .
+    ceq update-silence(AG, NETWORK in step: STEPS comm: COMM strat: EDGES, SETEDGE) =
+        if ceiling(| SA | / 2) <= count-close-opinions(AG, SA, nodes( NETWORK in step: STEPS comm: COMM strat: EDGES ))
+        then 1.0
+        else 0.0
+        fi
+    if 
+        SA := ns-influence(AG, SETEDGE, nodes( NETWORK in step: STEPS comm: COMM strat: EDGES ))
+    .
+
+    op count-close-opinions : Agent SetAgent SetOpinion -> Nat .
+    op count-close-opinions : Agent SetAgent SetOpinion Nat -> Nat .
+    eq count-close-opinions(AG, SA, SO) = count-close-opinions(AG, SA, SO, 0) .
+    eq count-close-opinions(AG, empty, SO, COUNT) = COUNT .
+    eq count-close-opinions(AG, (AG', SA), ( < AG : [ PHI, SL, TR ] > ,  < AG' : [ PHI', SL', TR' ] > , SO),  COUNT) =
+       count-close-opinions(AG, SA, ( < AG : [ PHI, SL, TR ] > , SO),
+                            COUNT + if abs(PHI - PHI') <= TR then 1 else 0 fi ) .
+    eq count-close-opinions(AG, (AG', SA), ( < AG' : [ PHI', SL', TR' ] > , SO), COUNT) = count-close-opinions(AG, SA, SO, COUNT) [owise] .
+
+    ---(
+    red count-close-opinions(1, (1, 2, 3, 4, 5), (< 1 : [ 1.0, 1.0, 0.15 ] >, < 2 : [ 0.8, 1.0, 0.15 ] >, < 3 : [ 0.5, 1.0, 0.1 ] >, < 4 : [ 0.2, 1.0, 0.15 ] >, < 5 : [ 0.0, 1.0, 0.15 ] >)) .
+    red ns-influence(1, edges, (< 1 : [ 1.0, 1.0, 0.15 ] >, < 2 : [ 0.8, 1.0, 0.15 ] >, < 3 : [ 0.5, 1.0, 0.1 ] >, < 4 : [ 0.2, 1.0, 0.15 ] >, < 5 : [ 0.0, 1.0, 0.15 ] >)) .
+    )
+
+endm
