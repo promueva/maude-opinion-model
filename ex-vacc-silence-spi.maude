@@ -143,9 +143,4 @@ mod TEST is
                             COUNT + if abs(PHI - PHI') <= TR then 1 else 0 fi ) .
     eq count-close-opinions(AG, (AG', SA), ( < AG' : [ PHI', SL', TR' ] > , SO), COUNT) = count-close-opinions(AG, SA, SO, COUNT) [owise] .
 
-    ---(
-    red count-close-opinions(1, (1, 2, 3, 4, 5), (< 1 : [ 1.0, 1.0, 0.15 ] >, < 2 : [ 0.8, 1.0, 0.15 ] >, < 3 : [ 0.5, 1.0, 0.1 ] >, < 4 : [ 0.2, 1.0, 0.15 ] >, < 5 : [ 0.0, 1.0, 0.15 ] >)) .
-    red ns-influence(1, edges, (< 1 : [ 1.0, 1.0, 0.15 ] >, < 2 : [ 0.8, 1.0, 0.15 ] >, < 3 : [ 0.5, 1.0, 0.1 ] >, < 4 : [ 0.2, 1.0, 0.15 ] >, < 5 : [ 0.0, 1.0, 0.15 ] >)) .
-    )
-
 endm
