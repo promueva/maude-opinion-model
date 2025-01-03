@@ -7,6 +7,9 @@ Sorts and operators defining agents and edges
 The following sorts (and operators) must be populated with user defined
 constructors (and equations):
  * Sort Agent for agents' identifiers (e.g., subsort Nat < Agent) 
+ * Sort AgentState. The modules defined here populate this sort with the
+   constructors needed for different cognitive bias models (Float) and the Silence
+   Spiral model (Float * Float * Float)
 
 Opinions are terms of the form (AG, AGENTSTATE) and edges are terms of the form 
 (AG, WEIGHT, AG')
@@ -15,7 +18,7 @@ A Network takes the form < nodes: NODES ; edges: EDGES >
 
 The state of the system is a term of the form { NETWORK }
 
-EPSILON (for checking consensus) must be defined in the user module
+Operator EPSILON (for checking consensus) must be defined in the user module
 
 ***)
 

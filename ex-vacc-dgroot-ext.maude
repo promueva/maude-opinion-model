@@ -6,6 +6,10 @@ Mário S. Alvim, Artur Gaspar da Silva, Sophia Knight, Frank Valencia: A
 Multi-agent Model for Opinion Evolution in Social Networks Under Cognitive
 Biases. FORTE 2024: 3-19
 
+The values of the network are taken from the above paper. The different
+scenarios can be analyzed by replacing the function beta with the definitions
+given in the end of the file.
+
 ***)
 
 load semantics .
@@ -47,87 +51,44 @@ mod VACCINES is
     eq init =  initnet  in step: 0 comm: 0 strat: empty .
 endm
 
-mod TEST is
+mod MODEL is
     pr VACCINES .
+
+    eq moduleName = 'MODEL .
+    eq model = deGroot .
+    eq update(STATE, SETEDGE, AG) = update-beta(STATE, SETEDGE, AG) .
 
     --- --------------------
     var STATE        : State .
     var SETEDGE      : SetEdge .
-    var SETEDGE'     : SetEdge .
-    vars AG AG' AG'' : Agent .
-    var EDGE         : Edge .
-    var SUM          : Float .
-    vars R W         : Float .
-    var NNODES       : SetOpinion .
-    var NETWORK      : Network .
-    vars PHI PHI'    : Float .
-    var STEPS        : Nat .
-    var COMM         : Nat .
-    var EDGES        : SetEdge .
-    var  SUMW        : Float .
+    vars AG AG'      : Agent .
+    var R            : Float .
     --- --------------------
 
-    eq moduleName = 'TEST .
-    eq model = deGroot .
-    eq update(STATE, SETEDGE, AG) = update-beta(STATE, SETEDGE, AG) .
-
-    --- ou + sum ( overline(ivu) beta uv(ov - ou))
-    op update-beta : State SetEdge Agent -> AgentState .  
-    ceq update-beta(NETWORK  in step: STEPS comm: COMM strat: EDGES, SETEDGE, AG ) = 
-               [ clamp(opinion(AG,  NETWORK  in step: STEPS comm: COMM strat: EDGES) + SUM) ]
-    if 
-       SUM := prod-diff(AG, nodes( NETWORK  in step: STEPS comm: COMM strat: EDGES ), SETEDGE) 
-       .
-
-
-    op beta : Agent Agent Float -> Float .
-
-    --- -----------------------
-    --- -----------------------
-    --- Figure (a)
+    --- ----------------------------------
+    --- Figure (a) 
     eq beta(2,1,R) = fan(R) .
     eq beta(1,6,R) = backf(R) .
-    eq beta(5,3,R) = backf(R) .
-    eq beta(6,5,R) = id(R) .
-    eq beta(6,4,R) = id(R) .
+    eq beta(4,2,R) = id(R) .
+    eq beta(1,2,R) = id(R) .
     eq beta(AG, AG', R) = conf(R) [owise] .
+    --- ----------------------------------
 
-    --- -----------------------
-
-
-    op fan : Float -> Float . 
-    eq fan(R) = if R == 0.0 then 0.0 else R / abs(R) fi .
-    op backf : Float -> Float . 
-    eq backf(R) = -1.0 * R * R * R .
-    op id : Float -> Float . 
-    eq id(R) = R .
-    op conf : Float -> Float . 
-    eq conf(R) = R * (1.0001 - abs(R)) / (1.0001) .
-
-    op prod-diff : Agent SetOpinion SetEdge -> Float .
-    op prod-diff : Agent SetOpinion SetEdge SetEdge Float -> Float .
-    eq prod-diff(AG, NNODES, SETEDGE) = prod-diff(AG, NNODES , SETEDGE, SETEDGE, 0.0)  .
-    eq prod-diff(AG, NNODES, empty, SETEDGE', SUMW) = SUMW .
-    eq prod-diff(AG, (NNODES, < AG : [ PHI ] > ,  < AG' : [ PHI' ] > ), ( < (AG', AG ) :  W  >   ,SETEDGE), SETEDGE', SUMW) = 
-       prod-diff(AG, (NNODES, < AG : [ PHI ] > ,  < AG' : [ PHI' ] > ),                           SETEDGE , SETEDGE', SUMW + beta(AG, AG', PHI' - PHI) * prop-inf(AG, SETEDGE', W ) ) .
-    eq prod-diff(AG, NNODES, ( < (AG' , AG'') :  W  >   ,SETEDGE), SETEDGE', SUMW) = 
-       prod-diff(AG, NNODES,                             SETEDGE,  SETEDGE', SUMW) [owise] .
-
-    op prop-inf : Agent  SetEdge Float  -> Float .
-    eq prop-inf(AG, SETEDGE, W) =  W / sum-W(AG, SETEDGE) .
 
 endm
 
 eof
+search  init =>* STATE such that consensus(STATE) .
 
-    --- Figure (a)
+    --- Figure (a) 
     eq beta(2,1,R) = fan(R) .
     eq beta(1,6,R) = backf(R) .
     eq beta(4,2,R) = id(R) .
     eq beta(1,2,R) = id(R) .
     eq beta(AG, AG', R) = conf(R) [owise] .
 
-    --- Figure (b)
+    --- Figure (b) (no consensus but stability is reached) 
+    --- rew [1000] init .
     eq beta(2,1,R) = fan(R) .
     eq beta(1,6,R) = backf(R) .
     eq beta(5,3,R) = backf(R) .
@@ -135,23 +96,24 @@ eof
     eq beta(6,4,R) = id(R) .
     eq beta(AG, AG', R) = conf(R) [owise] .
 
-    --- Figure (c)
+    --- Figure (c) (no consensus, nor stability) 
+    --- rew [1000] init .
     eq beta(5, 3, R) = fan(R) .
     eq beta(4, 3, R) = backf(R) .
     eq beta(6, 5, R) = id(R) .
     eq beta(1, 6, R) = id(R) .
     eq beta(AG, AG', R) = conf(R) [owise] .
 
-    --- Figure (d)
+    --- Figure (d) (consensus is reached) 
     eq beta(AG, AG', R) = id(R) .
 
-    --- Figure (e)
+    --- Figure (e) (no consensus, nor stability) 
     eq beta(AG, AG', R) = fan(R) .
 
-    --- Figure (f)
+    --- Figure (f) (stability is reached but no consensus) 
     eq beta(AG, AG', R) = backf(R) .
 
-    --- Figure (g)
+    --- Figure (g) (consensus is reached) 
     eq beta(AG, AG', R) = conf(R) .
 
 

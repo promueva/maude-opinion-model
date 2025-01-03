@@ -6,7 +6,9 @@ Mário S. Alvim, Artur Gaspar da Silva, Sophia Knight, Frank Valencia: A
 Multi-agent Model for Opinion Evolution in Social Networks Under Cognitive
 Biases. FORTE 2024: 3-19
 
-The values of the network are taken from those in Figure 1 in the paper. 
+The values of the network are those in our paper. The different scenarios shown
+in the paper can be analyzed by replacing the definition of beta with the
+values given in the end of the file.
 
 ***)
 
