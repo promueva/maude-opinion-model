@@ -115,5 +115,3 @@ search  init =>* STATE such that consensus(STATE) .
 
     --- Figure (g) (consensus is reached) 
     eq beta(AG, AG', R) = conf(R) .
-
-

@@ -1,4 +1,4 @@
-# Unified opinion dynamic modeling as concurrent set relations in rewriting logic
+# Unified Opinion Formation Analysis in Rewriting Logic
 
 Social media platforms have played a key role in weaponizing the polarization
 of social, political, and democratic processes. This is, mainly, because they
@@ -20,7 +20,7 @@ probabilistic simulation, and statistical model checking.
 
 ## Getting started
 
-The project was tested in [Maude 3.2.1](http://maude.cs.illinois.edu/).
+The project was tested in [Maude 3.5](https://maude.cs.illinois.edu/wiki/The_Maude_System).
 and with [umaudemc](https://github.com/fadoss/umaudemc). 
 
 ### Maude files
@@ -33,6 +33,10 @@ See the headers of each file for further information.
   and the executable rewrite rule `step`. 
 - `ex-vaccines`: Example of the social system in [this paper](./paper.pdf)
 - `ex-vacc-dgroot`, `ex-vacc-hybrid` and `ex-vacc-gossip`: Instantiation of the
-  framework with the De Groot, Hybrid and Gossip models. Some results of the
+  framework with the DeGroot, Hybrid and Gossip models. Some results of the
   analyses can be found in the end of these files. 
 - `formula.quates`: The QuaTEx formulas used for stochastic analysis. 
+- `ex-vacc-dgroot-ext-paper` and `ex-vacc-dgroot-ext.maude`:  Analysis with
+  DeGroot model extended with different cognitive biases
+- `ex-vacc-silence-spi-mem.maude` and `ex-vacc-silence-spi.maude` case studies
+  using the  Silence Spiral model (memoryless and history-dependent versions). 

@@ -44,7 +44,6 @@ smod TEST is
 
 endsm
 
-set print attribute on .
 eof 
 
 --- Reaching consensus before 300 communications 

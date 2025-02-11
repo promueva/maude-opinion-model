@@ -208,7 +208,6 @@ mod REW-RELATION-UPDATE is
     SUM := prod-diff-beta(AG, nodes( NETWORK  in step: STEPS comm: COMM strat: EDGES ), SETEDGE) 
     .
 
-
  op prod-diff-beta : Agent SetOpinion SetEdge -> Float .
  op prod-diff-beta : Agent SetOpinion SetEdge SetEdge Float -> Float .
  eq prod-diff-beta(AG, NNODES, SETEDGE) = prod-diff-beta(AG, NNODES , SETEDGE, SETEDGE, 0.0)  .
