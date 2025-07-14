@@ -77,7 +77,7 @@ fmod STATE is
  sort State .
 
  --- Network + the number of steps and communications 
- op _ in step:_ comm:_ strat:_ : Network Nat Nat SetEdge -> State [ctor] .
+ op _ in step:_ comm:_ edge-sel:_ : Network Nat Nat SetEdge -> State [ctor] .
 
  --- ------------------
  var SN           : SetOpinion .
@@ -86,6 +86,7 @@ fmod STATE is
  var OP           : Opinion .
  vars AG AG' AG'' : Agent .
  vars W W' W''    : Float .
+ vars MAX MIN     : Float .
  vars SL SL' P P' : Float .
  vars ST ST'      : AgentState .
  vars TR TR'      : Float .
@@ -101,30 +102,30 @@ fmod STATE is
  op strat : State -> SetEdge    .
  op steps : State -> Nat .
  op comm  : State -> Nat . 
- eq nodes( < nodes: SN ; edges: SE >  in step: STEPS comm: COMM strat: EDGES)  = SN .
- eq edges( < nodes: SN ; edges: SE >  in step: STEPS comm: COMM strat: EDGES)  = SE .
- eq strat( < nodes: SN ; edges: SE >  in step: STEPS comm: COMM strat: EDGES)  = EDGES .
- eq steps( < nodes: SN ; edges: SE >  in step: STEPS comm: COMM strat: EDGES)  = STEPS .
- eq comm(  < nodes: SN ; edges: SE >  in step: STEPS comm: COMM strat: EDGES)  = COMM .
+ eq nodes( < nodes: SN ; edges: SE >  in step: STEPS comm: COMM edge-sel: EDGES)  = SN .
+ eq edges( < nodes: SN ; edges: SE >  in step: STEPS comm: COMM edge-sel: EDGES)  = SE .
+ eq strat( < nodes: SN ; edges: SE >  in step: STEPS comm: COMM edge-sel: EDGES)  = EDGES .
+ eq steps( < nodes: SN ; edges: SE >  in step: STEPS comm: COMM edge-sel: EDGES)  = STEPS .
+ eq comm(  < nodes: SN ; edges: SE >  in step: STEPS comm: COMM edge-sel: EDGES)  = COMM .
 
  op opinion : Agent State -> Float .
- --- eq opinion(AG, < nodes: (< AG : W >, SN) ; edges: SE >  in step: STEPS comm: COMM strat: EDGES ) = W .
- eq opinion(AG, < nodes: (< AG : [ W ] >, SN) ; edges: SE >  in step: STEPS comm: COMM strat: EDGES ) = W .
- eq opinion(AG, < nodes: (< AG : [ W, W', TR ] >, SN) ; edges: SE >  in step: STEPS comm: COMM strat: EDGES ) = W .
- eq opinion(AG, < nodes: (< AG : [ W, W', W'', TR ] >, SN) ; edges: SE >  in step: STEPS comm: COMM strat: EDGES ) = W .
+ --- eq opinion(AG, < nodes: (< AG : W >, SN) ; edges: SE >  in step: STEPS comm: COMM edge-sel: EDGES ) = W .
+ eq opinion(AG, < nodes: (< AG : [ W ] >, SN) ; edges: SE >  in step: STEPS comm: COMM edge-sel: EDGES ) = W .
+ eq opinion(AG, < nodes: (< AG : [ W, W', TR ] >, SN) ; edges: SE >  in step: STEPS comm: COMM edge-sel: EDGES ) = W .
+ eq opinion(AG, < nodes: (< AG : [ W, W', W'', TR ] >, SN) ; edges: SE >  in step: STEPS comm: COMM edge-sel: EDGES ) = W .
 
  op public-opinion : Agent State -> Float .
- eq public-opinion(AG, < nodes: (< AG : [ W, W', W'', TR ] >, SN) ; edges: SE >  in step: STEPS comm: COMM strat: EDGES ) = W'' .
+ eq public-opinion(AG, < nodes: (< AG : [ W, W', W'', TR ] >, SN) ; edges: SE >  in step: STEPS comm: COMM edge-sel: EDGES ) = W'' .
 
  op state : Agent State -> AgentState .
- eq state(AG, < nodes: (< AG : ST >, SN) ; edges: SE >  in step: STEPS comm: COMM strat: EDGES ) = ST .
+ eq state(AG, < nodes: (< AG : ST >, SN) ; edges: SE >  in step: STEPS comm: COMM edge-sel: EDGES ) = ST .
 
  op silence : Agent State -> Float .
- eq silence(AG, < nodes: (< AG : [ W, W', TR ] >, SN) ; edges: SE >  in step: STEPS comm: COMM strat: EDGES ) = W' .
+ eq silence(AG, < nodes: (< AG : [ W, W', TR ] >, SN) ; edges: SE >  in step: STEPS comm: COMM edge-sel: EDGES ) = W' .
 
  op tolerance : Agent State -> Float .
- eq tolerance(AG, < nodes: (< AG : [ W, SL, TR ] >, SN) ; edges: SE >  in step: STEPS comm: COMM strat: EDGES ) = TR .
- eq tolerance(AG, < nodes: (< AG : [ W, SL, P, TR ] >, SN) ; edges: SE >  in step: STEPS comm: COMM strat: EDGES ) = TR .
+ eq tolerance(AG, < nodes: (< AG : [ W, SL, TR ] >, SN) ; edges: SE >  in step: STEPS comm: COMM edge-sel: EDGES ) = TR .
+ eq tolerance(AG, < nodes: (< AG : [ W, SL, P, TR ] >, SN) ; edges: SE >  in step: STEPS comm: COMM edge-sel: EDGES ) = TR .
 
 
  --- Set of target agents in a set of edges
@@ -173,7 +174,7 @@ fmod STATE is
  --- Checking consensus 
  op consensus : State      -> Bool .
  op consensus : SetOpinion -> Bool .
- eq consensus(< nodes: SO ; edges: SE > in step: STEPS comm: COMM strat: EDGES ) =
+ eq consensus(< nodes: SO ; edges: SE > in step: STEPS comm: COMM edge-sel: EDGES ) =
     consensus(SO) .
  ceq consensus(( < AG : [ W ] > ,  < AG' : [ W' ] > , SO)) = false 
     if abs(W - W') > EPSILON .
@@ -182,6 +183,7 @@ fmod STATE is
  ceq consensus(( < AG : [ W, SL, P, TR ] > ,  < AG' : [ W', SL', P', TR' ] > , SO)) = false 
     if abs(W - W') > EPSILON .
  eq consensus(SO) = true [owise] .
+
 
  --- Set of edges that are NOT self-loops
  op non-self : SetEdge -> SetEdge .
@@ -247,13 +249,13 @@ fmod STRATEGY is
  eq $add(E, mt, STR') = E ; STR' .
  eq $add(E, (SE ; STR), STR') = $add(E, STR, STR' ; (E, SE)) .
 
- op strategy : Model SetEdge -> SetSetEdge [memo] .
- eq strategy(deGroot, SE) = deGroot(SE) .
- eq strategy(gossip,  SE) = gossip(SE)  .
- eq strategy(hybrid,  SE) = hybrid(SE)  .
- eq strategy(hybrid>=(N),  SE)  = filter>=(N,hybrid(SE))  .
- eq strategy(hybrid=(N) ,  SE)  = filter=(N,hybrid(SE))  .
- eq strategy(hybrid<=(N) ,  SE) = filter<=(N,hybrid(SE))  .
+ op inf-selector : Model SetEdge -> SetSetEdge [memo] .
+ eq inf-selector(deGroot, SE) = deGroot(SE) .
+ eq inf-selector(gossip,  SE) = gossip(SE)  .
+ eq inf-selector(hybrid,  SE) = hybrid(SE)  .
+ eq inf-selector(hybrid>=(N),  SE)  = filter>=(N,hybrid(SE))  .
+ eq inf-selector(hybrid=(N) ,  SE)  = filter=(N,hybrid(SE))  .
+ eq inf-selector(hybrid<=(N) ,  SE) = filter<=(N,hybrid(SE))  .
 
  --- Set of edges of a certain cardinality 
  op filter= : Nat SetSetEdge -> SetSetEdge .

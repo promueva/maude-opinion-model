@@ -1,7 +1,7 @@
 
 // Number of steps to reach consensus 
 Steps() = 
-        if (s.rval("consensus(S)"))
+        if (s.rval("consensus(S:State)"))
          then s.rval("steps")
          else # Steps() 
         fi;
@@ -22,5 +22,4 @@ Prob(N) = if (s.rval("consensus(STATE)")) then 1.0
 
 //eval E[Steps () ];
 //eval E[Comms () ];
-eval E[Prob (200) ];
-
+eval E[Prob (1000)];

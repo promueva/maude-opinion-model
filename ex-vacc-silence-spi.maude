@@ -66,7 +66,7 @@ mod VACCINES is
     eq initnet =  < nodes: nodes ; edges: edges >  .
 
     op init : -> State .
-    eq init =  initnet  in step: 0 comm: 0 strat: empty .
+    eq init =  initnet  in step: 0 comm: 0 edge-sel: empty .
 
 endm
 
@@ -103,16 +103,16 @@ mod TEST is
     --- ou + sum ( overline(ivu) beta uv * su * (ov - ou))
     op update-silence-spiral : State SetEdge Agent -> AgentState .
 
-    eq update-silence-spiral(  NETWORK  in step: STEPS comm: COMM strat: EDGES, SETEDGE, AG ) =
-        [ update-opinion(AG,  NETWORK  in step: STEPS comm: COMM strat: EDGES, SETEDGE),
-          update-silence(AG,  NETWORK  in step: STEPS comm: COMM strat: EDGES, SETEDGE),
-          tolerance(AG,  NETWORK  in step: STEPS comm: COMM strat: EDGES) ] .
+    eq update-silence-spiral(  NETWORK  in step: STEPS comm: COMM edge-sel: EDGES, SETEDGE, AG ) =
+        [ update-opinion(AG,  NETWORK  in step: STEPS comm: COMM edge-sel: EDGES, SETEDGE),
+          update-silence(AG,  NETWORK  in step: STEPS comm: COMM edge-sel: EDGES, SETEDGE),
+          tolerance(AG,  NETWORK  in step: STEPS comm: COMM edge-sel: EDGES) ] .
 
     op update-opinion : Agent State SetEdge -> Float .
-    ceq update-opinion(AG, NETWORK  in step: STEPS comm: COMM strat: EDGES, SETEDGE) = 
-         opinion(AG,  NETWORK  in step: STEPS comm: COMM strat: EDGES) + SUMW
+    ceq update-opinion(AG, NETWORK  in step: STEPS comm: COMM edge-sel: EDGES, SETEDGE) = 
+         opinion(AG,  NETWORK  in step: STEPS comm: COMM edge-sel: EDGES) + SUMW
     if 
-        SUMW := prod-diff-spi(AG, nodes( NETWORK  in step: STEPS comm: COMM strat: EDGES ), SETEDGE)
+        SUMW := prod-diff-spi(AG, nodes( NETWORK  in step: STEPS comm: COMM edge-sel: EDGES ), SETEDGE)
     .
 
     op prod-diff-spi : Agent SetOpinion SetEdge -> Float .
@@ -125,13 +125,13 @@ mod TEST is
        prod-diff-spi(AG, NNODES,                    SETEDGE,  SUMW) [owise] .
 
     op update-silence : Agent State SetEdge -> Float .
-    ceq update-silence(AG, NETWORK in step: STEPS comm: COMM strat: EDGES, SETEDGE) =
-        if ceiling(| SA | / 2) <= count-close-opinions(AG, SA, nodes( NETWORK in step: STEPS comm: COMM strat: EDGES ))
+    ceq update-silence(AG, NETWORK in step: STEPS comm: COMM edge-sel: EDGES, SETEDGE) =
+        if ceiling(| SA | / 2) <= count-close-opinions(AG, SA, nodes( NETWORK in step: STEPS comm: COMM edge-sel: EDGES ))
         then 1.0
         else 0.0
         fi
     if 
-        SA := ns-influence(AG, SETEDGE, nodes( NETWORK in step: STEPS comm: COMM strat: EDGES ))
+        SA := ns-influence(AG, SETEDGE, nodes( NETWORK in step: STEPS comm: COMM edge-sel: EDGES ))
     .
 
     op count-close-opinions : Agent SetAgent SetOpinion -> Nat .

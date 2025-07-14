@@ -48,7 +48,7 @@ mod VACCINES is
     eq initnet =  < nodes: nodes ; edges: edges >  .
 
     op init : -> State .
-    eq init =  initnet  in step: 0 comm: 0 strat: empty .
+    eq init =  initnet  in step: 0 comm: 0 edge-sel: empty .
 endm
 
 mod MODEL is

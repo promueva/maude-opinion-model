@@ -79,9 +79,9 @@ mod REW-RELATION is
 
  crl [step] :   STATE => STATE'
  if
-     not consensus(STATE) /\ --- just to avoid unnecessary rewritings 
-     SETEDGE' ; SSE := strategy(model, edges(STATE)) /\
-     STATE'         := step(upModule(moduleName,false), STATE,  SETEDGE') 
+     --- not consensus(STATE) /\ --- just to avoid unnecessary rewritings 
+     EDGES ; SSE := inf-selector(model, edges(STATE)) /\
+     STATE'         := step(upModule(moduleName,false), STATE,  EDGESSETEDGE) 
      .
 
 
@@ -92,7 +92,7 @@ mod REW-RELATION is
 
  eq step(M, STATE, empty, SO, EDGES) =  < nodes: ( nodes(STATE) // SO) ; edges: edges(STATE) > 
                                         in step: (steps(STATE) + 1) 
-                                        comm: (comm(STATE) + | non-self(EDGES) | ) strat: EDGES .
+                                        comm: (comm(STATE) + | non-self(EDGES) | ) edge-sel: EDGES .
  eq step(M, STATE, (AG, SETAG), SO, EDGES) = 
     step(M, STATE, SETAG, (SO, next(M, AG, EDGES, STATE)), EDGES) .
 
@@ -134,28 +134,28 @@ mod REW-RELATION-UPDATE is
  op update-gossip : State SetEdge Agent -> AgentState .  
  op update-hybrid : State SetEdge Agent -> AgentState .  
 
- ceq update-dgroot(  NETWORK  in step: STEPS comm: COMM strat: EDGES, SETEDGE, AG ) = 
-         if SCOUNT == 0.0 then [ opinion(AG, NETWORK  in step: STEPS comm: COMM strat: EDGES) ]
-           else [ opinion(AG,  NETWORK  in step: STEPS comm: COMM strat: EDGES) + (SUMW / SCOUNT) ] 
+ ceq update-dgroot(  NETWORK  in step: STEPS comm: COMM edge-sel: EDGES, SETEDGE, AG ) = 
+         if SCOUNT == 0.0 then [ opinion(AG, NETWORK  in step: STEPS comm: COMM edge-sel: EDGES) ]
+           else [ opinion(AG,  NETWORK  in step: STEPS comm: COMM edge-sel: EDGES) + (SUMW / SCOUNT) ] 
          fi 
  if 
     SCOUNT  := sum-W(AG, SETEDGE) /\ 
-    SUMW := prod-diff(AG, nodes( NETWORK  in step: STEPS comm: COMM strat: EDGES ), SETEDGE) 
+    SUMW := prod-diff(AG, nodes( NETWORK  in step: STEPS comm: COMM edge-sel: EDGES ), SETEDGE) 
     .
 
- ceq update-dgroot-CB(  NETWORK  in step: STEPS comm: COMM strat: EDGES, SETEDGE, AG ) = 
-         if SCOUNT == 0.0 then [ opinion(AG, NETWORK  in step: STEPS comm: COMM strat: EDGES) ]
-           else [ opinion(AG,  NETWORK  in step: STEPS comm: COMM strat: EDGES) + (SUMW / SCOUNT) ] 
+ ceq update-dgroot-CB(  NETWORK  in step: STEPS comm: COMM edge-sel: EDGES, SETEDGE, AG ) = 
+         if SCOUNT == 0.0 then [ opinion(AG, NETWORK  in step: STEPS comm: COMM edge-sel: EDGES) ]
+           else [ opinion(AG,  NETWORK  in step: STEPS comm: COMM edge-sel: EDGES) + (SUMW / SCOUNT) ] 
          fi 
  if 
     SCOUNT  := sum-W(AG, SETEDGE) /\ 
-    SUMW := prod-diff-CB(AG, nodes( NETWORK  in step: STEPS comm: COMM strat: EDGES ), SETEDGE) 
+    SUMW := prod-diff-CB(AG, nodes( NETWORK  in step: STEPS comm: COMM edge-sel: EDGES ), SETEDGE) 
     .
 
 
  --- Update function for dgroot and hybrid are the same (modulo de chosen edges)
- eq update-hybrid(  NETWORK  in step: STEPS comm: COMM strat: EDGES, SETEDGE, AG ) = 
-    update-dgroot(  NETWORK  in step: STEPS comm: COMM strat: EDGES, SETEDGE, AG ) .
+ eq update-hybrid(  NETWORK  in step: STEPS comm: COMM edge-sel: EDGES, SETEDGE, AG ) = 
+    update-dgroot(  NETWORK  in step: STEPS comm: COMM edge-sel: EDGES, SETEDGE, AG ) .
 
  op prod-diff : Agent SetOpinion SetEdge -> Float .
  op prod-diff : Agent SetOpinion SetEdge Float -> Float .
@@ -189,23 +189,23 @@ mod REW-RELATION-UPDATE is
     sum-W(AG,                             SETEDGE,  SUMW) [owise] .
 
  --- Update function for Gossip
- ceq update-gossip(  NETWORK  in step: STEPS comm: COMM strat: EDGES, < (AG' , AG) : W >, AG ) = 
-           [ opinion(AG,  NETWORK  in step: STEPS comm: COMM strat: EDGES) + W * (PHI' - PHI) ]
+ ceq update-gossip(  NETWORK  in step: STEPS comm: COMM edge-sel: EDGES, < (AG' , AG) : W >, AG ) = 
+           [ opinion(AG,  NETWORK  in step: STEPS comm: COMM edge-sel: EDGES) + W * (PHI' - PHI) ]
  if 
-     PHI  := opinion(AG,  NETWORK  in step: STEPS comm: COMM strat: EDGES) /\
-     PHI' := opinion(AG',  NETWORK  in step: STEPS comm: COMM strat: EDGES) .
- eq update-gossip(  NETWORK  in step: STEPS comm: COMM strat: EDGES, SETEDGE, AG ) = 
-     [ opinion(AG,  NETWORK  in step: STEPS comm: COMM strat: EDGES) ] [owise] .
+     PHI  := opinion(AG,  NETWORK  in step: STEPS comm: COMM edge-sel: EDGES) /\
+     PHI' := opinion(AG',  NETWORK  in step: STEPS comm: COMM edge-sel: EDGES) .
+ eq update-gossip(  NETWORK  in step: STEPS comm: COMM edge-sel: EDGES, SETEDGE, AG ) = 
+     [ opinion(AG,  NETWORK  in step: STEPS comm: COMM edge-sel: EDGES) ] [owise] .
 
  --- General version with different cognitive biases 
  op beta : Agent Agent Float -> Float . --- To be defined by the user 
 
  op update-beta : State SetEdge Agent -> AgentState .  
 
- ceq update-beta(NETWORK  in step: STEPS comm: COMM strat: EDGES, SETEDGE, AG ) = 
-             [ clamp(opinion(AG,  NETWORK  in step: STEPS comm: COMM strat: EDGES) + SUM) ]
+ ceq update-beta(NETWORK  in step: STEPS comm: COMM edge-sel: EDGES, SETEDGE, AG ) = 
+             [ clamp(opinion(AG,  NETWORK  in step: STEPS comm: COMM edge-sel: EDGES) + SUM) ]
  if 
-    SUM := prod-diff-beta(AG, nodes( NETWORK  in step: STEPS comm: COMM strat: EDGES ), SETEDGE) 
+    SUM := prod-diff-beta(AG, nodes( NETWORK  in step: STEPS comm: COMM edge-sel: EDGES ), SETEDGE) 
     .
 
  op prod-diff-beta : Agent SetOpinion SetEdge -> Float .

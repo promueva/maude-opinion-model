@@ -23,7 +23,7 @@ endm
 eof 
 
 --- Consensus and number of steps in Degroot:
-search  init =>* STATE such that consensus(STATE) .
+search [1]  init =>* STATE such that consensus(STATE) .
 
 Consensus:  0 : 4.80
 Steps: 34

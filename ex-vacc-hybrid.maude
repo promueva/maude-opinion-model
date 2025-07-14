@@ -44,10 +44,18 @@ smod TEST is
 
 endsm
 
+eof
+
+set trace on .
+set trace condition off .
+srew init using step [EDGES <- (< ( 0 , 1) : 0.6 >, < (1 , 1) : 0.4 >, < ( 2 , 4) : 0.6 > )] .
+
+quit .
+
 eof 
 
 --- Reaching consensus before 300 communications 
-python -m umaudemc  scheck example-hybrid.maude init formula.quatex -a 0.05 -d 0.01   --jobs 0 --assign uniform 
+python -m umaudemc  scheck ex-vacc-hybrid.maude init formula.quatex -a 0.05 -d 0.01   --jobs 0 --assign uniform 
 Number of simulations = 3450
   μ = 0.9011594202898551        σ = 0.29849111329162514       r = 0.009963739924599339
 

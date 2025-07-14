@@ -6,7 +6,7 @@ load semantics .
 
 mod VACCINES is
     pr REW-RELATION-UPDATE . 
-    eq EPSILON = 0.00001 .
+    eq EPSILON = 0.001 .
     subsort Nat < Agent .
 
 
@@ -34,6 +34,6 @@ mod VACCINES is
     eq initnet =  < nodes: nodes ; edges: edges >  .
 
     op init : -> State .
-    eq init =  initnet  in step: 0 comm: 0 strat: empty .
+    eq init =  initnet  in step: 0 comm: 0 edge-sel: empty .
 endm
 

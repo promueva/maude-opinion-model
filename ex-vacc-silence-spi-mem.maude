@@ -85,7 +85,7 @@ mod VACCINES is
     eq initnet =  < nodes: nodes ; edges: edges >  .
 
     op init : -> State .
-    eq init =  initnet  in step: 0 comm: 0 strat: empty .
+    eq init =  initnet  in step: 0 comm: 0 edge-sel: empty .
 
 endm
 
@@ -122,20 +122,20 @@ mod TEST is
 
     --- ou + sum ( overline(ivu) uv * (pov - ou))
     op update-silence-spiral-mem : State SetEdge Agent -> AgentState .
-    ceq update-silence-spiral-mem(  NETWORK  in step: STEPS comm: COMM strat: EDGES, SETEDGE, AG ) =
+    ceq update-silence-spiral-mem(  NETWORK  in step: STEPS comm: COMM edge-sel: EDGES, SETEDGE, AG ) =
         [ PHI, SL,
-          if SL == 1.0 then PHI else public-opinion(AG,  NETWORK  in step: STEPS comm: COMM strat: EDGES) fi,
-          tolerance(AG,  NETWORK  in step: STEPS comm: COMM strat: EDGES) ] 
+          if SL == 1.0 then PHI else public-opinion(AG,  NETWORK  in step: STEPS comm: COMM edge-sel: EDGES) fi,
+          tolerance(AG,  NETWORK  in step: STEPS comm: COMM edge-sel: EDGES) ] 
     if 
-        PHI := update-opinion-mem(AG,  NETWORK  in step: STEPS comm: COMM strat: EDGES, SETEDGE) /\
-        SL := update-silence-mem(AG,  NETWORK  in step: STEPS comm: COMM strat: EDGES, SETEDGE)
+        PHI := update-opinion-mem(AG,  NETWORK  in step: STEPS comm: COMM edge-sel: EDGES, SETEDGE) /\
+        SL := update-silence-mem(AG,  NETWORK  in step: STEPS comm: COMM edge-sel: EDGES, SETEDGE)
     .
 
     op update-opinion-mem : Agent State SetEdge -> Float .
-    ceq update-opinion-mem(AG, NETWORK  in step: STEPS comm: COMM strat: EDGES, SETEDGE) = 
-         opinion(AG,  NETWORK  in step: STEPS comm: COMM strat: EDGES) + SUMW
+    ceq update-opinion-mem(AG, NETWORK  in step: STEPS comm: COMM edge-sel: EDGES, SETEDGE) = 
+         opinion(AG,  NETWORK  in step: STEPS comm: COMM edge-sel: EDGES) + SUMW
     if 
-        SUMW := prod-diff-spi-mem(AG, nodes( NETWORK  in step: STEPS comm: COMM strat: EDGES ), SETEDGE)
+        SUMW := prod-diff-spi-mem(AG, nodes( NETWORK  in step: STEPS comm: COMM edge-sel: EDGES ), SETEDGE)
     .
 
     op prod-diff-spi-mem : Agent SetOpinion SetEdge -> Float .
@@ -149,8 +149,8 @@ mod TEST is
         prod-diff-spi-mem(AG, SO,                          SETEDGE,  SUMW) [owise] .
 
     op update-silence-mem : Agent State SetEdge -> Float .
-    ceq update-silence-mem(AG, NETWORK in step: STEPS comm: COMM strat: EDGES, SETEDGE) =
-        if ceiling(| SA | / 2) <= count-close-opinions(AG, SA, nodes( NETWORK in step: STEPS comm: COMM strat: EDGES ))
+    ceq update-silence-mem(AG, NETWORK in step: STEPS comm: COMM edge-sel: EDGES, SETEDGE) =
+        if ceiling(| SA | / 2) <= count-close-opinions(AG, SA, nodes( NETWORK in step: STEPS comm: COMM edge-sel: EDGES ))
         then 1.0
         else 0.0
         fi
