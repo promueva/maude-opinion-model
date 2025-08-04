@@ -1,0 +1,48 @@
+
+    
+    load ./semantics-gossip .
+    
+    
+    mod MODEL is
+      pr GOSSIP . 
+      eq EPSILON = 0.05 .
+      subsort Nat < Agent .
+      
+      
+      vars S L R : State .
+      
+      op nodes   : -> SetOpinion .
+      op edges   : -> SetEdge .
+      op initnet : -> Network .
+      
+      eq nodes =  < 0 : [ 0.556 ] > ,  < 1 : [ 0.442 ] > . 
+      
+        eq edges = 
+		< ( 0 , 0 ) : 1.000 >,
+		< ( 0 , 1 ) : 0.260 >,
+		< ( 1 , 0 ) : 0.773 >,
+		< ( 1 , 1 ) : 1.000 > .
+      
+      eq initnet =  < nodes: nodes ; edges: edges >  .
+      
+      op init : -> State .
+      eq init =  initnet  in step: 0 comm: 0 strat: empty .
+    endm
+
+    
+    mod TEST is
+      pr MODEL .
+      
+      --- --------------------
+      var STATE   : State .
+      var SETEDGE : SetEdge .
+      var AG      : Agent .
+      --- --------------------
+    endm
+    
+    eof
+    
+    --- Example of use
+    search  init =>* STATE such that consensus(STATE) .
+    
+    
