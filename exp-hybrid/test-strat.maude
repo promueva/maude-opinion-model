@@ -1,0 +1,187 @@
+--- Experiment on using different strategies in the hybrid model
+--- to reduce the polarization of the system
+
+--- Polarization is measure in this case as the variance of the system
+--- Different strategies are defined, applying the "step" rule in the 
+--- hybrid model with some specific set of edges, specially those
+--- linking agents whose distance of opinion is higher than a given threshold. 
+
+load ../semantics-hybrid.maude .
+
+--- Network to be analyzed 
+load ./35
+
+smod TEST is
+  pr MODEL .
+  pr META-LEVEL .
+  
+  --- ---------------------------
+  var STATE           : State .
+  var STATE'          : State .
+  var SETEDGE         : SetEdge .
+  vars EDGES EDGES'   : SetEdge .
+  var STEPS           : Nat .
+  var COMM            : Nat .
+  var NNODES          : SetOpinion .
+  var NNODES'         : SetOpinion .
+  var E               : Edge .
+  vars PHI PHI' W W'  : Float .
+  vars AG AG' AG1 AG2 : Agent .
+  vars F F'           : Float .
+  vars N N'           : Nat .
+  var NET             : Network .
+  var STR             : Strategy .
+  var RPAIR?          : ResultPair? .
+  var MODULE          : Module .
+  --- ---------------------------
+
+  --- Sets of edges linking agents whose distance |oi - oj| is the max. in the
+  --- system
+
+  op max-dist : State -> SetEdge .
+  op max-dist : SetOpinion SetEdge SetEdge Float -> SetEdge .
+  eq max-dist( < nodes:  NNODES ; edges: SETEDGE > in step: STEPS comm: COMM edge-sel: EDGES') =
+     max-dist(NNODES, SETEDGE, empty, -0.1) .
+
+  eq max-dist(NNODES, empty, EDGES, F) = EDGES .
+  eq max-dist(( < AG : [ PHI ] > ,  < AG' : [ PHI' ] > ,NNODES), (< (AG, AG') : W >, SETEDGE), EDGES, F) =
+     if abs(PHI' - PHI) > F
+     then max-dist(( < AG : [ PHI ] > ,  < AG' : [ PHI' ] > ,NNODES), SETEDGE, < (AG, AG') : W >, abs(PHI' - PHI))
+     else 
+         if abs(PHI' - PHI) == F 
+         then max-dist(( < AG : [ PHI ] > ,  < AG' : [ PHI' ] > ,NNODES), SETEDGE, (EDGES, < (AG, AG') : W >), F)
+         else max-dist(( < AG : [ PHI ] > ,  < AG' : [ PHI' ] > ,NNODES), SETEDGE, EDGES, F)
+         fi
+     fi .
+
+  eq max-dist(( < AG : [ PHI ] >  ,NNODES), (< (AG, AG) : W >, SETEDGE),  EDGES, F) = 
+     max-dist(( < AG : [ PHI ] >  ,NNODES), (                  SETEDGE),  EDGES, F) .
+
+  --- Set of edges linking agents where |oi - oj| >= F
+  op max-dist : State  Float -> SetEdge .
+  op max-dist : SetOpinion SetEdge SetEdge  Float -> SetEdge .
+  eq max-dist( < nodes:  NNODES ; edges: SETEDGE > in step: STEPS comm: COMM edge-sel: EDGES', F) =
+     max-dist(NNODES, SETEDGE, empty, F) .
+
+  eq max-dist(NNODES, empty, EDGES, F) = EDGES .
+  eq max-dist(( < AG : [ PHI ] > ,  < AG' : [ PHI' ] > ,NNODES), (< (AG, AG') : W >, SETEDGE), EDGES, F) = 
+    if abs(PHI - PHI') >= F
+    then max-dist(( < AG : [ PHI ] > ,  < AG' : [ PHI' ] > ,NNODES), SETEDGE, (< (AG, AG') : W > , EDGES), F) 
+    else max-dist(( < AG : [ PHI ] > ,  < AG' : [ PHI' ] > ,NNODES), SETEDGE, ( EDGES), F) 
+    fi .
+
+  eq max-dist(  NNODES, (< (AG, AG) : W >, SETEDGE), EDGES, F) = 
+     max-dist(  NNODES,                    SETEDGE , ( < (AG, AG) : W >, EDGES), F) . 
+
+  --- ----------------------
+  --- Some useful strategies 
+  --- ----------------------
+
+  --- Applying the hybrid step rule with the set of edges determined
+  --- by the max-dist and max-dist(F) functions above. 
+  strat round :        @ State . 
+  strat round :   Float  @ State . 
+
+  sd round := 
+     matchrew STATE s.t. STATE' := STATE
+       by STATE using step[EDGES <- max-dist(STATE')] .
+
+  --- Note that this strategy may fail since max-fist-th can be empty for some values of F 
+  sd round(F) := 
+         matchrew STATE s.t. STATE' := STATE
+           by STATE using step[EDGES <- max-dist(STATE', F)] .
+
+
+  --- Repeating n times the above strategies 
+  strat iter :     @ State . 
+  strat iter : Nat @ State .
+  strat iter : Nat Float  @ State .
+  sd iter(0) := idle .
+  sd iter(s(N)) := 
+     check 
+     or-else (
+         matchrew STATE s.t. STATE' := STATE
+     by STATE using step[EDGES <- max-dist(STATE')] ; iter(N) ) .
+
+
+  sd iter(0, F) := idle .
+  sd iter(s(N), F) := 
+     check 
+     or-else (
+         matchrew STATE s.t. STATE' := STATE
+     by STATE using try(step[EDGES <- max-dist(STATE', F)] ; iter(N, F) )) .
+
+  --- Iterating until reaching consensus 
+  sd iter := 
+     check 
+     or-else (
+         matchrew STATE 
+     by STATE using try(step[EDGES <- max-dist(STATE, 0.0)] ; iter )) .
+
+  --- Checking if consensus has been reached 
+  strat check : @ State .
+  sd check := 
+      (match STATE s.t. consensus(STATE)) .
+
+  --- New state with the final number of communications and steps (after consensus)
+  op < comm:_ ; step:_ > : Nat Nat -> State [ctor] .
+  rl [result] :  NET  in step: N comm: COMM edge-sel: SETEDGE =>
+      < comm: COMM ; step: N > .
+
+
+  --- Iterating by using different thresholds for the strategy max-dist
+  --- starting from 0.9 and reducing 0.1 in each time 
+  strat solve : Nat Nat Float @ State .
+  strat solve : Nat Float Float @ State .
+
+  sd solve(N', N, F') := iter(N') ; solve(N, 0.9, F') .
+  csd solve(N, F, F') := iter 
+     if F <= F' .
+  csd solve(N, F, F') := 
+                     iter(N, F) ; (
+                     (match < comm: COMM ; step: STEPS >) ? idle : solve(N, max(0.0, F - 0.1), F')) 
+      if F > F' .
+
+  --- The one used in the paper 
+  --- The strategy used in the paper 
+  strat steps  : Float Float  @ State .
+  strat steps  : Float  @ State .
+  sd steps(F') := steps(0.9, F') .
+  csd steps(F, F') := idle 
+     if F <= F' .
+  csd steps(F, F') := 
+                     iter(1, F) ; (
+                     (check) ? idle : steps(max(0.0, F - 0.1), F')) 
+      if F > F' .
+
+  --- Reporting results 
+  sort Pair .
+  --- Variance + Number of communications  
+  op <_,_> : Float Nat -> Pair .  
+
+   --- Definition of polarization as variance 
+   --- Returns < 1.0, 0 > (the max of the variance in this case) in case of failure
+   op polarization : Strategy -> Pair .
+   ceq polarization (STR) = 
+       if RPAIR? == failure then < 1.0, 0 > else 
+           downTerm(getTerm(metaReduce(MODULE, '<_`,_>['variance-sys[getTerm(RPAIR?)], 'comm[getTerm(RPAIR?)]])), < 1.0, 0 >)
+       fi
+   if 
+       MODULE := upModule('TEST, true) /\ 
+       RPAIR? := metaSrewrite(MODULE, upTerm(init), STR, breadthFirst, 0) .
+endsm
+
+
+--- Variance/polarization in the initial state
+red polarization(idle) .
+--- Variance when reducing the the threshold 
+red polarization('steps[[upTerm(0.9)]]) .
+red polarization('steps[[upTerm(0.8)]]) .
+red polarization('steps[[upTerm(0.7)]]) .
+red polarization('steps[[upTerm(0.6)]]) .
+red polarization('steps[[upTerm(0.5)]]) .
+red polarization('steps[[upTerm(0.4)]]) .
+red polarization('steps[[upTerm(0.3)]]) .
+red polarization('steps[[upTerm(0.2)]]) .
+red polarization('steps[[upTerm(0.1)]]) .
+red polarization('steps[[upTerm(0.0)]]) .
