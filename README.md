@@ -41,5 +41,6 @@ See the headers of each file for further information.
 - `ex-vacc-silence-spi-mem.maude` and `ex-vacc-silence-spi.maude` case studies
   using the  Silence Spiral model (memoryless and history-dependent versions). 
 
-The directory `./exp-gossip` contains the needed files to reproduce the
-experiments on the gossip model reported in the paper. 
+The directory `./exp-gossip` (resp. `./exp-hybrid`)  contains the needed files
+to reproduce the experiments on the gossip (resp. hybrid) model reported in the
+paper. 
