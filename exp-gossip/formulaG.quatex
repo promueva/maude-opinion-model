@@ -1,0 +1,26 @@
+
+// Number of steps to reach consensus 
+Steps() = 
+        if (s.rval("consensus(S)"))
+         then s.rval("steps")
+         else # Steps() 
+        fi;
+
+// Number of communications to reach consensus 
+Comms() = 
+        if (s.rval("consensus(S)"))
+         then s.rval("comm(S)")
+         else # Comms() 
+        fi;
+
+// Probability of consensus in less than N steps 
+Prob(N) = if (s.rval("consensus(STATE)")) then 1.0
+         else 
+              if (s.rval("comm(STATE)") <= N) then # Prob(N) else 0.0
+            fi
+        fi;
+
+//eval E[Steps () ];
+//eval E[Comms () ];
+eval E[Prob (PARAM) ];
+
