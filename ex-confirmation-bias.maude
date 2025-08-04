@@ -1,5 +1,6 @@
 ***(
- The example of vaccines 
+ 
+ Analysis with DGroot
 ***)
 
 load semantics .
@@ -16,7 +17,7 @@ mod VACCINES is
     op edges   : -> SetEdge .
     op initnet : -> Network .
     ---          a            b            c            d            e            f
-    eq nodes = < 0 : [ 0.0 ] >, < 1 : [ 0.1 ] >, < 2 : [ 0.15 ] >, < 3 : [ 0.82 ] >, < 4 : [ 0.89 ] >, < 5  : [ 0.92 ] > .
+    eq nodes = < 0 : 0.0 >, < 1 : 0.1 >, < 2 : 0.15 >, < 3 : 0.82 >, < 4 : 0.89 >, < 5  : 0.92 > .
     eq edges = < ( 5 , 0) : 1.0 > ,
                < ( 0 , 1) : 0.6 > ,
                < ( 1 , 3) : 0.6 > ,
@@ -26,14 +27,39 @@ mod VACCINES is
                < ( 2 , 4) : 0.6 > ,
                < ( 4 , 5) : 0.6 > ,
                --- Self loops
-               < (1 , 1) : 0.4 >,
-               < (2 , 2) : 0.4 > ,
-               < (3 , 3) : 0.4 > ,
-               < (4 , 4) : 0.4 > .
+               < (1 , 1) : 1.0 >,
+               < (2 , 2) : 1.0 > ,
+               < (3 , 3) : 1.0 > ,
+               < (4 , 4) : 1.0 > .
 
     eq initnet =  < nodes: nodes ; edges: edges >  .
 
     op init : -> State .
     eq init =  initnet  in step: 0 comm: 0 edge-sel: empty .
 endm
+
+
+mod TEST is
+    pr VACCINES .
+
+    --- --------------------
+    var STATE   : State .
+    var SETEDGE : SetEdge .
+    var AG      : Agent .
+    --- --------------------
+
+    eq moduleName = 'TEST .
+    eq model = deGroot .
+    eq update(STATE, SETEDGE, AG) = update-dgroot-CB(STATE, SETEDGE, AG) .
+
+endm
+
+eof 
+
+--- Consensus and number of steps in Degroot:
+search  init =>* STATE such that consensus(STATE) .
+
+Consensus:  0 : 0.4829
+Steps: 24
+Communications: 192
 

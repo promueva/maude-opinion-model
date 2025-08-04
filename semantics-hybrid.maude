@@ -1,0 +1,88 @@
+***(
+
+A tailored module for the semantics of the hybrid model 
+
+***)
+
+load data .
+
+mod HYBRID is 
+ pr STRATEGY .
+
+ --- ----------------------------
+ vars AG AG' AG''    : Agent .
+ var SETAG           : SetAgent .
+ var SETEDGE         : SetEdge .
+ var SETEDGE'        : SetEdge .
+ var NNODES          : SetOpinion .
+ var NNODES'         : SetOpinion .
+ var COUNT           : Nat .
+ var SCOUNT          : Float . 
+ vars SUMW PRODW ACC : Float .
+ vars PHI PHI'       : Float .
+ vars W VAL R        : Float .
+ var STEPS           : Nat .
+ var COMM            : Nat .
+ var EDGES           : SetEdge . 
+ var EDGES'          : SetEdge . 
+ var SUM             : Float .
+ var SO SO'          : SetOpinion .
+ vars STATE STATE'   : State .
+ var SSE             : SetSetEdge .
+ --- ----------------------------
+
+ crl [step] :
+   STATE => STATE' 
+ if 
+    EDGES, EDGES' := edges(STATE) /\ EDGES =/= empty /\ 
+    STATE' := update(STATE, EDGES) .
+
+ op update : State SetEdge -> State .
+ eq update( < nodes:  NNODES ; edges: SETEDGE > 
+              in step: STEPS comm: COMM edge-sel: EDGES', 
+              EDGES) = 
+            < nodes:  update-hybrid(NNODES, NNODES, EDGES) ; edges: SETEDGE > 
+              in step: (STEPS + 1) comm: (COMM + | non-self(EDGES) |) edge-sel: EDGES .
+
+
+ op update-hybrid : SetOpinion SetOpinion SetEdge  -> SetOpinion .
+
+ eq update-hybrid(NNODES, empty,  EDGES) = empty .
+ eq update-hybrid(NNODES, (< AG : [ PHI ] >, SO), ( < (AG', AG) : W >, EDGES)) = 
+        < AG : [ update-op(AG, PHI, NNODES, ( < (AG', AG) : W >, EDGES)) ] >,
+    update-hybrid(NNODES, SO, ( < (AG', AG) : W >, EDGES)) .
+
+ --- AG is not influenced by the selected set of edges 
+ eq update-hybrid(NNODES, (< AG : [ PHI ] >, SO),  EDGES) = 
+   < AG : [ PHI ] >, update-hybrid(NNODES, SO, EDGES) [owise] .
+
+
+ op update-op : Agent Float SetOpinion SetEdge -> Float .
+ ceq update-op(AG, PHI, NNODES, EDGES) = 
+    if SCOUNT == 0.0 then PHI 
+    else PHI + (SUMW / SCOUNT)
+    fi
+ if SCOUNT  := sum-W(AG, EDGES) /\ 
+    SUMW    := prod-diff(AG, NNODES, EDGES)  .
+
+
+ op sum-W : Agent SetEdge -> Float .
+ op sum-W : Agent SetEdge Float -> Float .
+ eq sum-W(AG, SETEDGE) = sum-W(AG, SETEDGE, 0.0)  .
+ eq sum-W(AG, empty, SUMW) = SUMW .
+ eq sum-W(AG, ( < (AG', AG ) :  W  >   ,SETEDGE), SUMW) = 
+    sum-W(AG                           ,SETEDGE , SUMW + W ) .
+ eq sum-W(AG, ( < (AG' , AG'') :  W  >   ,SETEDGE), SUMW) = 
+    sum-W(AG,                             SETEDGE,  SUMW) [owise] .
+
+ op prod-diff : Agent SetOpinion SetEdge -> Float .
+ op prod-diff : Agent SetOpinion SetEdge Float -> Float .
+ eq prod-diff(AG, NNODES, SETEDGE) = prod-diff(AG, NNODES , SETEDGE, 0.0)  .
+ eq prod-diff(AG, NNODES, empty, SUMW) = SUMW .
+ eq prod-diff(AG, (NNODES, < AG : [ PHI ] > ,  < AG' : [ PHI' ] > ), ( < (AG', AG ) :  W  >   ,SETEDGE), SUMW) = 
+    prod-diff(AG, (NNODES, < AG : [ PHI ] > ,  < AG' : [ PHI' ] > ),                           SETEDGE , SUMW + (PHI' - PHI) * W ) .
+ eq prod-diff(AG, NNODES, ( < (AG' , AG'') :  W  >   ,SETEDGE), SUMW) = 
+    prod-diff(AG, NNODES,                    SETEDGE,  SUMW) [owise] .
+
+
+endm

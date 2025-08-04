@@ -1,0 +1,43 @@
+***(
+
+A tailored module for the semantics of Gossip systems
+
+Definition of the atomic rule and the step rule.
+
+The following operators must be defined in the user-module 
+
+op EPSILON : -> Float .                    --- Epsilon for checking consensus
+
+***)
+
+load data .
+
+mod GOSSIP is 
+ pr STRATEGY .
+
+ --- ----------------------------
+ var NETWORK         : Network .
+ vars AG AG' AG''    : Agent .
+ var SETEDGE         : SetEdge .
+ var SETEDGE'        : SetEdge .
+ var NNODES          : SetOpinion .
+ var COUNT           : Nat .
+ var SCOUNT          : Float . 
+ vars SUMW PRODW ACC : Float .
+ vars PHI PHI'       : Float .
+ vars W VAL R        : Float .
+ var STEPS           : Nat .
+ var COMM            : Nat .
+ var EDGES           : SetEdge . 
+ var SUM             : Float .
+ --- ----------------------------
+
+ rl [step] :
+ < nodes: ( < AG : [ PHI ] >, < AG' : [ PHI'] >, NNODES ) ; 
+   edges: ( < (AG', AG) : W >, SETEDGE) >
+   in step: STEPS comm: COMM edge-sel: EDGES =>
+ < nodes: ( < AG : [ PHI + W * (PHI' - PHI) ] >, < AG' : [ PHI'] >, NNODES ) ; 
+   edges: ( < (AG', AG) : W >, SETEDGE) >
+   in step: STEPS comm: (COMM + 1)  edge-sel: < (AG', AG) : W > [metadata "abs(PHI - PHI')"] .
+
+endm

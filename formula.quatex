@@ -22,4 +22,4 @@ Prob(N) = if (s.rval("consensus(STATE)")) then 1.0
 
 //eval E[Steps () ];
 //eval E[Comms () ];
-eval E[Prob (1000)];
+eval E[Prob (200)];

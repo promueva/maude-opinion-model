@@ -30,7 +30,10 @@ mod MODEL is
 
 
     --- -----------------------
-    eq beta(AG, AG', R) = id(R) .
+    eq beta(1,0,R) = fan(R) .
+    eq beta(2,0,R) = fan(R) .
+    eq beta(0,5,R) = backf(R) .
+    eq beta(AG, AG', R) = conf(R) [owise] .
     --- -----------------------
 
 endm
@@ -38,8 +41,12 @@ endm
 eof
 search [1]  init =>* STATE such that consensus(STATE) .
 
+    --- DeGroot
+    eq beta(AG, AG', R) = id(R) .
+
     --- Scenario 1
     eq beta(AG, AG', R) = backf(R) .
+
     --- Scenario 2
     eq beta(AG, AG', R) = fan(R) .
 

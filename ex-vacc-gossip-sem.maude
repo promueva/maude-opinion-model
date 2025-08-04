@@ -1,0 +1,94 @@
+***(
+ 
+ Analysis with Gossip
+***)
+
+load ./semantics-gossip .
+
+mod VACCINES is
+    pr GOSSIP . 
+    eq EPSILON = 0.001 .
+    subsort Nat < Agent .
+
+
+    vars S L R : State .
+
+    op nodes   : -> SetOpinion .
+    op edges   : -> SetEdge .
+    op initnet : -> Network .
+    ---          a            b            c            d            e            f
+    eq nodes = < 0 : [ 0.0 ] >, < 1 : [ 0.1 ] >, < 2 : [ 0.15 ] >, < 3 : [ 0.82 ] >, < 4 : [ 0.89 ] >, < 5  : [ 0.92 ] > .
+    eq edges = < ( 5 , 0) : 1.0 > ,
+               < ( 0 , 1) : 0.6 > ,
+               < ( 1 , 3) : 0.6 > ,
+               < ( 3 , 5) : 0.4 > ,
+               < ( 3 , 2) : 0.2 > ,
+               < ( 0 , 2) : 0.4 > ,
+               < ( 2 , 4) : 0.6 > ,
+               < ( 4 , 5) : 0.6 > ,
+               --- Self loops
+               < (1 , 1) : 0.4 >,
+               < (2 , 2) : 0.4 > ,
+               < (3 , 3) : 0.4 > ,
+               < (4 , 4) : 0.4 > .
+
+    eq initnet =  < nodes: nodes ; edges: edges >  .
+
+    op init : -> State .
+    eq init =  initnet  in step: 0 comm: 0 edge-sel: empty .
+endm
+
+
+mod TEST is
+    pr VACCINES .
+
+    --- --------------------
+    vars STATE L R : State .
+    var SETEDGE    : SetEdge .
+    var AG         : Agent .
+    --- --------------------
+
+
+endm
+
+eof 
+
+--- Reaching consensus before 30 communications 
+python -m umaudemc  scheck ex-vacc-gossip.maude init formula.quatex -a 0.05 -d 0.01   --jobs 0 --assign uniform 
+Number of simulations = 9330
+  μ = 0.5869239013933548        σ = 0.4924126558087222        r = 0.009992929545716416
+
+python -m umaudemc  scheck ex-vacc-gossip.maude init formula.quatex -a 0.05 -d 0.01   --jobs 0 --assign  "term(variance(L,R))"
+Number of simulations = 9330
+  μ = 0.5892818863879957        σ = 0.49199053696134576       r = 0.009984363145458437
+
+python -m umaudemc  scheck ex-vacc-gossip.maude init formula.quatex -a 0.05 -d 0.01   --jobs 0 --assign  "term(distance(L,R))"
+Number of simulations = 8850
+  μ = 0.6425988700564972        σ = 0.47926142772211244       r = 0.009986385789385575
+
+--- Reaching consensus before 20 communications 
+python -m umaudemc  scheck ex-vacc-gossip.maude init formula.quatex -a 0.05 -d 0.01   --jobs 0 --assign uniform 
+Number of simulations = 8730
+  μ = 0.3481099656357388        σ = 0.47639837808774255       r = 0.009994739212796108
+
+python -m umaudemc  scheck ex-vacc-gossip.maude init formula.quatex -a 0.05 -d 0.01   --jobs 0 --assign  "term(variance(L,R))"
+Number of simulations = 8580
+  μ = 0.3344988344988345        σ = 0.4718424656486135        r = 0.00998533749462784
+
+python -m umaudemc  scheck ex-vacc-gossip.maude init formula.quatex -a 0.05 -d 0.01   --jobs 0 --assign  "term(distance(L,R))"
+Number of simulations = 9120
+  μ = 0.38410087719298247       σ = 0.4864086096938176        r = 0.009984114961579511
+
+--- Reaching consensus before 35 communications 
+python -m umaudemc  scheck ex-vacc-gossip.maude init formula.quatex -a 0.05 -d 0.01   --jobs 0 --assign uniform 
+Number of simulations = 8310
+  μ = 0.6850782190132371        σ = 0.4645126674182715        r = 0.009988687096453203
+
+python -m umaudemc  scheck ex-vacc-gossip.maude init formula.quatex -a 0.05 -d 0.01   --jobs 0 --assign  "term(variance(L,R))"
+Number of simulations = 8460
+  μ = 0.675177304964539         σ = 0.4683362450227445        r = 0.009981201538002362
+
+python -m umaudemc  scheck ex-vacc-gossip.maude init formula.quatex -a 0.05 -d 0.01   --jobs 0 --assign  "term(distance(L,R))"
+
+Number of simulations = 7560
+  μ = 0.7314814814814815        σ = 0.4432181270699962        r = 0.009992502212238756

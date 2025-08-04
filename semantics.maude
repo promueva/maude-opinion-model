@@ -80,8 +80,8 @@ mod REW-RELATION is
  crl [step] :   STATE => STATE'
  if
      --- not consensus(STATE) /\ --- just to avoid unnecessary rewritings 
-     EDGES ; SSE := inf-selector(model, edges(STATE)) /\
-     STATE'         := step(upModule(moduleName,false), STATE,  EDGESSETEDGE) 
+     EDGES ; SSE := strategy(model, edges(STATE)) /\
+     STATE'         := step([moduleName], STATE,  EDGES) 
      .
 
 

@@ -1,0 +1,77 @@
+***(
+
+A tailored module for the semantics of DeGroot
+
+Definition of the atomic rule and the step rule.
+
+The following operators must be defined in the user-module 
+
+op EPSILON : -> Float .                    --- Epsilon for checking consensus
+
+***)
+
+load data .
+
+mod DEGROOT is 
+ pr STRATEGY .
+
+ --- ----------------------------
+ var NETWORK         : Network .
+ vars AG AG' AG''    : Agent .
+ var SETEDGE         : SetEdge .
+ var SETEDGE'        : SetEdge .
+ var NNODES          : SetOpinion .
+ var NNODES'         : SetOpinion .
+ var COUNT           : Nat .
+ var SCOUNT          : Float . 
+ vars SUMW PRODW ACC : Float .
+ vars PHI PHI'       : Float .
+ vars W VAL R        : Float .
+ var STEPS           : Nat .
+ var COMM            : Nat .
+ var EDGES           : SetEdge . 
+ var SUM             : Float .
+ --- ----------------------------
+
+ rl [step] :
+ < nodes:  NNODES  ; 
+   edges:  SETEDGE >
+   in step: STEPS comm: COMM edge-sel: EDGES =>
+ < nodes: update(NNODES, SETEDGE) ;
+   edges: SETEDGE >
+   in step: (STEPS + 1) comm: (COMM + | non-self(SETEDGE) |)  edge-sel: empty .
+
+ op update : SetOpinion SetEdge -> SetOpinion .   
+ op update : SetOpinion SetOpinion SetEdge -> SetOpinion .
+
+ eq update(NNODES, SETEDGE) = update(NNODES, NNODES, SETEDGE) .
+ eq update(empty, NNODES, SETEDGE) = empty .
+ ceq update((< AG : [ PHI ] >, NNODES'), NNODES, SETEDGE) = 
+    < AG : [ if SCOUNT == 0.0 then PHI else
+       PHI + (SUMW / SCOUNT)
+    fi ] >
+    , update(NNODES', NNODES, SETEDGE) 
+ if 
+    SCOUNT  := sum-W(AG, SETEDGE) /\ 
+    SUMW := prod-diff(AG, NNODES, SETEDGE) 
+.
+
+ op sum-W : Agent SetEdge -> Float .
+ op sum-W : Agent SetEdge Float -> Float .
+ eq sum-W(AG, SETEDGE) = sum-W(AG, SETEDGE, 0.0)  .
+ eq sum-W(AG, empty, SUMW) = SUMW .
+ eq sum-W(AG, ( < (AG', AG ) :  W  >   ,SETEDGE), SUMW) = 
+    sum-W(AG                           ,SETEDGE , SUMW + W ) .
+ eq sum-W(AG, ( < (AG' , AG'') :  W  >   ,SETEDGE), SUMW) = 
+    sum-W(AG,                             SETEDGE,  SUMW) [owise] .
+
+ op prod-diff : Agent SetOpinion SetEdge -> Float .
+ op prod-diff : Agent SetOpinion SetEdge Float -> Float .
+ eq prod-diff(AG, NNODES, SETEDGE) = prod-diff(AG, NNODES , SETEDGE, 0.0)  .
+ eq prod-diff(AG, NNODES, empty, SUMW) = SUMW .
+ eq prod-diff(AG, (NNODES, < AG : [ PHI ] > ,  < AG' : [ PHI' ] > ), ( < (AG', AG ) :  W  >   ,SETEDGE), SUMW) = 
+    prod-diff(AG, (NNODES, < AG : [ PHI ] > ,  < AG' : [ PHI' ] > ),                           SETEDGE , SUMW + (PHI' - PHI) * W ) .
+ eq prod-diff(AG, NNODES, ( < (AG' , AG'') :  W  >   ,SETEDGE), SUMW) = 
+    prod-diff(AG, NNODES,                    SETEDGE,  SUMW) [owise] .
+
+endm

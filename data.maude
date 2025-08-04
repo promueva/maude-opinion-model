@@ -220,9 +220,13 @@ fmod STRATEGY is
  var AG            : Agent .
  vars MIN MAX      : Float .
  var DIST          : Float .
- var MEAN          : Float .
  var SUM           : Float .
  var R             : Float .
+ var SO            : SetOpinion .
+ vars MEAN F F'    : Float .
+ var STEPS         : Nat .
+ var COMM          : Nat .
+ var EDGES         : SetEdge .
  --- ----------------
 
  --- Computing the 3 strategies 
@@ -249,13 +253,13 @@ fmod STRATEGY is
  eq $add(E, mt, STR') = E ; STR' .
  eq $add(E, (SE ; STR), STR') = $add(E, STR, STR' ; (E, SE)) .
 
- op inf-selector : Model SetEdge -> SetSetEdge [memo] .
- eq inf-selector(deGroot, SE) = deGroot(SE) .
- eq inf-selector(gossip,  SE) = gossip(SE)  .
- eq inf-selector(hybrid,  SE) = hybrid(SE)  .
- eq inf-selector(hybrid>=(N),  SE)  = filter>=(N,hybrid(SE))  .
- eq inf-selector(hybrid=(N) ,  SE)  = filter=(N,hybrid(SE))  .
- eq inf-selector(hybrid<=(N) ,  SE) = filter<=(N,hybrid(SE))  .
+ op strategy : Model SetEdge -> SetSetEdge [memo] .
+ eq strategy(deGroot, SE) = deGroot(SE) .
+ eq strategy(gossip,  SE) = gossip(SE)  .
+ eq strategy(hybrid,  SE) = hybrid(SE)  .
+ eq strategy(hybrid>=(N),  SE)  = filter>=(N,hybrid(SE))  .
+ eq strategy(hybrid=(N) ,  SE)  = filter=(N,hybrid(SE))  .
+ eq strategy(hybrid<=(N) ,  SE) = filter<=(N,hybrid(SE))  .
 
  --- Set of edges of a certain cardinality 
  op filter= : Nat SetSetEdge -> SetSetEdge .
@@ -300,6 +304,39 @@ fmod STRATEGY is
  op sum : State SetAgent Float -> Float .
  eq sum(STATE, empty, SUM) = SUM .
  eq sum(STATE, (AG, SA), SUM) = sum(STATE, SA, SUM + opinion(AG, STATE)) .
+
+ --- Variance of the agent's opinions
+ op variance-sys : State -> Float .
+ op variance-sys : SetOpinion -> Float .
+
+ eq variance-sys( < nodes: SO ; edges: SE > in step: STEPS comm: COMM edge-sel: EDGES) =
+    variance-sys(SO) .
+
+ eq variance-sys(SO) = (1.0 / float( | SO |)) * sumsq(SO, mean(SO)) .
+ op mean : SetOpinion -> Float  .
+ eq mean(SO) = sum(SO) / float( | SO |) .
+
+ op sumsq : SetOpinion Float Float  -> Float .
+ op sumsq : SetOpinion Float  -> Float .
+ eq sumsq(SO, MEAN) = sumsq(SO, MEAN, 0.0) .
+ eq sumsq(empty, MEAN, F) = F .
+ eq sumsq((< AG : [ F'] >, SO), MEAN, F) = sumsq( SO, MEAN, (F + (MEAN - F') ^ 2.0)) .
+
+ op sum : SetOpinion -> Float .
+ eq sum(empty) = 0.0 .
+ eq sum((< AG : [ F'] >, SO)) = F' + sum(SO) .
+
+ --- Distance of the min and max opinions
+ op max-sys : State -> Float .
+ op max-sys : SetOpinion Float Float  -> Float .
+ eq max-sys( < nodes: SO ; edges: SE > in step: STEPS comm: COMM edge-sel: EDGES) =
+    max-sys(SO, 1.0, 0.0) .
+
+eq max-sys(empty, MIN, MAX) = MAX - MIN .
+
+eq max-sys(( < AG : [F' ] >  ,SO), MIN, MAX) = max-sys(SO, (if F' < MIN then F' else MIN fi), (if F' > MAX then F' else MAX fi)) .
+
+
 
  --- Clamp function
  op clamp : Float -> Float .
