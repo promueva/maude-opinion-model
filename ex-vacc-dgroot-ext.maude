@@ -78,7 +78,7 @@ mod MODEL is
 endm
 
 eof
-search  init =>* STATE such that consensus(STATE) .
+search [1]  init =>* STATE such that consensus(STATE) .
 
     --- Figure (a) 
     eq beta(2,1,R) = fan(R) .
